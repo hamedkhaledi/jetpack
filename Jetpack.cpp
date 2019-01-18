@@ -3,7 +3,9 @@
 #include <thread>
 #include <chrono>
 #include <fstream>
+#include <random>
 using namespace std;
+
 long long int Score;
 int r1, r2; //taein texture random baraye back1 , back2
 int RunCounter;
@@ -32,9 +34,8 @@ struct FlippingThing
     int currentIndex;
     bool show;
     Pos Position;
-    int PositionXmax;
     SDL_Rect Rect;
-};
+} * *coinsAr;
 struct Obstacle
 {
     Pos PositionStart;
@@ -42,12 +43,10 @@ struct Obstacle
     bool Show;
     int Width;
     int Height;
+    int ShowRand;
+    int ShowRandDelay;
     SDL_Rect Rect;
 } Coins, Zapper[3];
-//	aaraayeE ke sekkeHaa-e charkhaan raa dar khod negah midaarad
-FlippingThing **coinsAr;
-//	aaraayeE ke moshakhas mikonad ke dar har noghte aayaaa sekke daarim, yaa oon khoone khaalie!
-
 void initializeFlippingCoin(FlippingThing &flipping)
 {
     flipping.images = new Texture[6];
@@ -69,22 +68,43 @@ void RestartBackground(Pos Background[])
 }
 void DeterminZapperPos(int i)
 {
-    srand(time(NULL));
+    mt19937 rng;
+    rng.seed(std::random_device()());
+    /* if (Zapper[i].ShowRandDelay % 25 == 0)
+    {
+        uniform_int_distribution<std::mt19937::result_type> dist3(0, 0);
+        Zapper[i].ShowRand = dist3(rng);
+        Zapper[i].ShowRandDelay = 1;
+    }
+    if (Zapper[i].ShowRand == 0)
+    {*/
+    int counter = 0;
     do
     {
-        Zapper[i].PositionStart.x = 1024 + rand() % 1024;
-        Zapper[i].PositionStart.y = rand() % 200;
+        uniform_int_distribution<std::mt19937::result_type> dist1(1024, 2048);
+        Zapper[i].PositionStart.x = dist1(rng);
+        uniform_int_distribution<std::mt19937::result_type> dist2(0, 1024);
+        Zapper[i].PositionStart.y = dist2(rng);
         Zapper[i].Rect = {Zapper[i].PositionStart.x,
                           Zapper[i].PositionStart.y,
                           300,
                           50};
+        counter++;
+        cout << counter << " ";
     } while (SBDL::hasIntersectionRect(Zapper[i].Rect, Coins.Rect) || SBDL::hasIntersectionRect(Zapper[i].Rect, Zapper[(i + 1) % 3].Rect) || SBDL::hasIntersectionRect(Zapper[i].Rect, Zapper[(i + 2) % 3].Rect));
+
+    /*Zapper[i].ShowRandDelay = 0;
+     }
+    else
+        Zapper[i].ShowRandDelay++;*/
 }
 
 void CoinPattern()
 {
-    srand(time(NULL));
-    ifstream fin("assets/coinPatterns/coinPattern" + to_string(1) + ".txt");
+    mt19937 rng;
+    rng.seed(std::random_device()());
+    uniform_int_distribution<std::mt19937::result_type> Rand(1, 27);
+    ifstream fin("assets/coinPatterns/coinPattern" + to_string(Rand(rng)) + ".txt");
     linesCounter = 0;
     eachLineLength = 0;
     string temp;
@@ -121,8 +141,10 @@ void CoinPattern()
         }
         lineCounterTemp++;
     }
-    Coins.PositionStart.x = rand() % 4096 + 1024;
-    Coins.PositionStart.y = rand() % (440 - 15 * linesCounter);
+    uniform_int_distribution<std::mt19937::result_type> Rand1(1024, 5120);
+    Coins.PositionStart.x = Rand1(rng);
+    uniform_int_distribution<std::mt19937::result_type> Rand2(0, 440 - 15 * linesCounter);
+    Coins.PositionStart.y = Rand2(rng);
     Coins.PositionEnd.x = Coins.PositionStart.x + 15 * eachLineLength;
     Coins.PositionEnd.y = Coins.PositionStart.y + 15 * linesCounter;
     Coins.Rect = {Coins.PositionStart.x,
@@ -133,8 +155,9 @@ void CoinPattern()
     {
         while (SBDL::hasIntersectionRect(Zapper[i].Rect, Coins.Rect))
         {
-            Coins.PositionStart.x = rand() % 4096 + 1024;
-            Coins.PositionStart.y = rand() % (440 - 15 * linesCounter);
+            cout << "yes";
+            Coins.PositionStart.x = Rand1(rng);
+            Coins.PositionStart.y = Rand2(rng);
             Coins.PositionEnd.x = Coins.PositionStart.x + 15 * eachLineLength;
             Coins.PositionEnd.y = Coins.PositionStart.y + 15 * linesCounter;
             Coins.Rect = {Coins.PositionStart.x,
@@ -164,6 +187,8 @@ void Restart()
 }
 int main()
 {
+    mt19937 rng;
+    rng.seed(random_device()());
     srand(time(NULL));
     SBDL::InitEngine("Jetpack", 1024, 460);
     Texture BackgroundTexture[4][3];
@@ -291,11 +316,25 @@ int main()
             SBDL::showTexture(ZapperTexture, Zapper[i].PositionStart.x, Zapper[i].PositionStart.y);
             Zapper[i].PositionStart.x -= BackgrondVelocity;
             Zapper[i].PositionEnd.x = Zapper[i].PositionStart.x + ZapperTexture.width;
-            cout << Zapper[i].PositionStart.x << endl;
+
             if (Zapper[i].PositionEnd.x < 0)
-                DeterminZapperPos(i);
+            {
+                if (Zapper[i].ShowRandDelay % 50 == 0)
+                {
+                    Zapper[i].ShowRand = rand() % 4;
+                    Zapper[i].ShowRandDelay = 0;
+                }
+                if (Zapper[i].ShowRand == 0)
+                {
+                    DeterminZapperPos(i);
+                    Zapper[i].ShowRandDelay = 0;
+                }
+                else
+                    Zapper[i].ShowRandDelay++;
+            }
         }
         //END ZAPPERS
+
         SBDL::updateRenderScreen();
         int elapsedTime = SBDL::getTime() - startTime;
         if (elapsedTime < delay)
