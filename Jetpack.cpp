@@ -67,19 +67,20 @@ void RestartBackground(Pos Background[])
     for (int i = 0; i < 3; i++)
         Background[i].x = 2048 * (i + 3);
 }
-void DeterminZapperPos(Obstacle &ZapperTemp)
+void DeterminZapperPos(int i)
 {
     srand(time(NULL));
     do
     {
-        ZapperTemp.PositionStart.x = 1024 + rand() % 1024;
-        ZapperTemp.PositionStart.y = rand() % 200;
-        ZapperTemp.Rect = {ZapperTemp.PositionStart.x,
-                           ZapperTemp.PositionStart.y,
-                           300,
-                           50};
-    } while (SBDL::hasIntersectionRect(ZapperTemp.Rect, Coins.Rect));
+        Zapper[i].PositionStart.x = 1024 + rand() % 1024;
+        Zapper[i].PositionStart.y = rand() % 200;
+        Zapper[i].Rect = {Zapper[i].PositionStart.x,
+                          Zapper[i].PositionStart.y,
+                          300,
+                          50};
+    } while (SBDL::hasIntersectionRect(Zapper[i].Rect, Coins.Rect) || SBDL::hasIntersectionRect(Zapper[i].Rect, Zapper[(i + 1) % 3].Rect) || SBDL::hasIntersectionRect(Zapper[i].Rect, Zapper[(i + 2) % 3].Rect));
 }
+
 void CoinPattern()
 {
     srand(time(NULL));
@@ -145,12 +146,13 @@ void CoinPattern()
 }
 void Restart()
 {
+    CoinPattern();
     srand(time(NULL));
     for (int i = 0; i < 3; i++)
     {
         Background1[i].x = 2048 * i;
         Background2[i].x = 2048 * (i + 3);
-        DeterminZapperPos(Zapper[i]);
+        DeterminZapperPos(i);
     }
 
     r1 = 0;
@@ -159,7 +161,6 @@ void Restart()
     Barry.vel = 0;
     Barry.ShapeNumber = 1;
     RunCounter = 0;
-    Coins.PositionStart.x = rand() % 2048 + 1024;
 }
 int main()
 {
@@ -180,12 +181,13 @@ int main()
 
     const int FPS = 60;           //frame per second
     const int delay = 1000 / FPS; //delay we need at each frame
+
     Restart();
     //
     //	streami ke be file-e mored-e nazaremoon vasl mishe... ba komakesh gharaare mohtaviaat-e file ro bekhoonim
 
     //
-    CoinPattern();
+
     while (SBDL::isRunning())
     {
         int startTime = SBDL::getTime();
@@ -282,7 +284,6 @@ int main()
         }
         if (counterCoin > 2)
             counterCoin = 0;
-        cout << Score << endl;
         //END COINS
         //ZAPPERS
         for (int i = 0; i < 3; i++)
@@ -290,8 +291,9 @@ int main()
             SBDL::showTexture(ZapperTexture, Zapper[i].PositionStart.x, Zapper[i].PositionStart.y);
             Zapper[i].PositionStart.x -= BackgrondVelocity;
             Zapper[i].PositionEnd.x = Zapper[i].PositionStart.x + ZapperTexture.width;
+            cout << Zapper[i].PositionStart.x << endl;
             if (Zapper[i].PositionEnd.x < 0)
-                DeterminZapperPos(Zapper[i]);
+                DeterminZapperPos(i);
         }
         //END ZAPPERS
         SBDL::updateRenderScreen();
