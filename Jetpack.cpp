@@ -69,10 +69,6 @@ void RestartBackground(Pos Background[])
 }
 void DeterminZapperPos(Obstacle &ZapperTemp)
 {
-    Coins.Rect = {Coins.PositionStart.x,
-                  Coins.PositionStart.y,
-                  Coins.PositionEnd.x - Coins.PositionStart.x,
-                  Coins.PositionEnd.y - Coins.PositionStart.y};
     srand(time(NULL));
     do
     {
@@ -124,22 +120,27 @@ void CoinPattern()
         }
         lineCounterTemp++;
     }
-    SDL_Rect coinrect;
-
+    Coins.PositionStart.x = rand() % 4096 + 1024;
+    Coins.PositionStart.y = rand() % (440 - 15 * linesCounter);
+    Coins.PositionEnd.x = Coins.PositionStart.x + 15 * eachLineLength;
+    Coins.PositionEnd.y = Coins.PositionStart.y + 15 * linesCounter;
+    Coins.Rect = {Coins.PositionStart.x,
+                  Coins.PositionStart.y,
+                  Coins.PositionEnd.x - Coins.PositionStart.x,
+                  Coins.PositionEnd.y - Coins.PositionStart.y};
     for (int i = 0; i < 3; i++)
     {
-        do
+        while (SBDL::hasIntersectionRect(Zapper[i].Rect, Coins.Rect))
         {
-            Coins.PositionStart.x = rand() % 8192 + 1024;
+            Coins.PositionStart.x = rand() % 4096 + 1024;
             Coins.PositionStart.y = rand() % (440 - 15 * linesCounter);
             Coins.PositionEnd.x = Coins.PositionStart.x + 15 * eachLineLength;
             Coins.PositionEnd.y = Coins.PositionStart.y + 15 * linesCounter;
-            coinrect = {Coins.PositionStart.x,
-                        Coins.PositionStart.y,
-                        Coins.PositionEnd.x - Coins.PositionStart.x,
-                        Coins.PositionEnd.y - Coins.PositionStart.y};
-
-        } while (SBDL::hasIntersectionRect(Zapper[i].Rect, coinrect));
+            Coins.Rect = {Coins.PositionStart.x,
+                          Coins.PositionStart.y,
+                          Coins.PositionEnd.x - Coins.PositionStart.x,
+                          Coins.PositionEnd.y - Coins.PositionStart.y};
+        }
     }
 }
 void Restart()
