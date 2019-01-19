@@ -6,14 +6,13 @@
 using namespace std;
 #include <random>
 
+#define PI 3.14159265
+
 int main()
 {
-    mt19937 rng;
-    rng.seed(random_device()());
-    for (int i = 0; i < 6; i++)
-    {
-        // distribution in range [1, 6]
-        uniform_int_distribution<mt19937::result_type> dist6(0, 6);
-        cout << dist6(rng) << endl;
-    }
+    double param, result;
+    param = 1.0;
+    result = atan(1) * 180 / PI;
+    printf("The arc tangent of %f is %f degrees\n", param, result);
+    return 0;
 }

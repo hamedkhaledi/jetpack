@@ -4,6 +4,7 @@
 #include <chrono>
 #include <fstream>
 #include <random>
+#include <math.h>
 #define PI 3.14159265
 using namespace std;
 
@@ -44,13 +45,11 @@ struct Obstacle
     bool Show;
     int Width;
     int Height;
-    int size;
     int ShowRand;
     int ShowRandDelay;
     int ShapeNumber;
     SDL_Rect Rect;
     int Angle;
-    int AngleSign;
 } Coins, Zapper[3];
 void initializeFlippingCoin(FlippingThing &flipping)
 {
@@ -75,56 +74,41 @@ void DetermineZapperPos(int i)
 {
     mt19937 rng;
     rng.seed(std::random_device()());
-    do
+    if (Zapper[i].ShowRandDelay % 100 == 0)
     {
-        uniform_int_distribution<std::mt19937::result_type> dist1(1024, 4096);
-        Zapper[i].PositionStart.x = dist1(rng);
-        uniform_int_distribution<std::mt19937::result_type> dist2(100, 350);
-        Zapper[i].PositionStart.y = dist2(rng);
-        Zapper[i].size = sqrt(Zapper[i].Width * Zapper[i].Width + Zapper[i].Height * Zapper[i].Height);
-        Zapper[i].Rect = {Zapper[i].PositionStart.x + (1 - cos((float)Zapper[i].Angle * PI / 180)) * Zapper[i].size / 2,
-                          Zapper[i].PositionStart.y - (Zapper[i].AngleSign) * (sin((float)Zapper[i].Angle * PI / 180) * Zapper[i].size / 2) + 15,
-                          Zapper[i].Width,
-                          Zapper[i].Height};
-    } while (SBDL::hasIntersectionRect(Zapper[i].Rect, Coins.Rect) || SBDL::hasIntersectionRect(Zapper[i].Rect, Zapper[(i + 1) % 3].Rect) || SBDL::hasIntersectionRect(Zapper[i].Rect, Zapper[(i + 2) % 3].Rect));
+        uniform_int_distribution<std::mt19937::result_type> dist3(0, 3);
+        Zapper[i].ShowRand = dist3(rng);
+        Zapper[i].ShowRandDelay = 1;
+    }
+    if (Zapper[i].ShowRand == 1)
+    {
+        do
+        {
+            uniform_int_distribution<std::mt19937::result_type> dist1(1024, 4096);
+            Zapper[i].PositionStart.x = dist1(rng);
+            uniform_int_distribution<std::mt19937::result_type> dist2(15, 300);
+            Zapper[i].PositionStart.y = dist2(rng);
+            Zapper[i].Rect = {Zapper[i].PositionStart.x,
+                              Zapper[i].PositionStart.y,
+                              Zapper[i].Width,
+                              Zapper[i].Height};
+        } while (SBDL::hasIntersectionRect(Zapper[i].Rect, Coins.Rect) || SBDL::hasIntersectionRect(Zapper[i].Rect, Zapper[(i + 1) % 3].Rect) || SBDL::hasIntersectionRect(Zapper[i].Rect, Zapper[(i + 2) % 3].Rect));
+
+        Zapper[i].ShowRandDelay = 0;
+    }
+    else
+        Zapper[i].ShowRandDelay++;
 }
 void DetermineZapper(int i)
 {
     mt19937 rng;
     rng.seed(std::random_device()());
-    if (Zapper[i].ShowRandDelay % 150 == i * 50)
-    {
-        uniform_int_distribution<std::mt19937::result_type> dist3(0, 15);
-        Zapper[i].ShowRand = dist3(rng);
-        Zapper[i].ShowRandDelay = i * 50 + 1;
-    }
-    else
-        Zapper[i].ShowRandDelay++;
-    if (Zapper[i].ShowRand == 1)
-    {
-        uniform_int_distribution<std::mt19937::result_type> dist1(1, 200);
-        Zapper[i].Width = dist1(rng);
-        if (Zapper[i].Width > 100)
-        {
-            uniform_int_distribution<std::mt19937::result_type> dist2(1, 200);
-            Zapper[i].Height = dist2(rng);
-        }
-        else
-        {
-            uniform_int_distribution<std::mt19937::result_type> dist2(150, 250);
-            Zapper[i].Height = dist2(rng);
-        }
-
-        do
-        {
-            uniform_int_distribution<std::mt19937::result_type> RandAngleSign(-1, 1);
-            Zapper[i].AngleSign = RandAngleSign(rng);
-        } while (Zapper[i].AngleSign == 0);
-        Zapper[i].Angle = Zapper[i].AngleSign * (atan((float)Zapper[i].Height / Zapper[i].Width) * 180 / PI);
-        cout << Zapper[i].Angle << endl;
-        DetermineZapperPos(i);
-        Zapper[i].ShowRandDelay = i * 50 + 1;
-    }
+    uniform_int_distribution<std::mt19937::result_type> dist1(100, 200);
+    Zapper[i].Width = dist1(rng);
+    uniform_int_distribution<std::mt19937::result_type> dist2(100, 200);
+    Zapper[i].Height = dist1(rng);
+    Zapper[i].Angle = tan(Zapper[i].Height / Zapper[i].Width) * 180 / PI;
+    DetermineZapperPos(i);
 }
 void DetermineCoinPos()
 {
@@ -214,10 +198,14 @@ void Restart()
 }
 int main()
 {
+
     mt19937 rng;
     rng.seed(random_device()());
     srand(time(NULL));
-    SBDL::InitEngine("Jetpack", 2048, 550);
+    uniform_int_distribution<std::mt19937::result_type> Rand(-1, 1);
+    int k = -1;
+
+    SBDL::InitEngine("Jetpack", 1024, 550);
     Texture BackgroundTexture[4][3];
     Texture BarryTexture[5];
     Texture ZapperTexture = SBDL::loadTexture("assets/pic/zappers/h1.png");
@@ -307,21 +295,39 @@ int main()
         Barry.Rect = {50, Barry.Position.y, BarryTexture[Barry.ShapeNumber].width, BarryTexture[Barry.ShapeNumber].height};
         //END BARRY
         //ZAPPERS
+
         for (int i = 0; i < 3; i++)
         {
-            ZapperTexture.width = Zapper[i].size;
-            ZapperTexture.height = 30;
+            Zapper[i].Width = 200;
+            Zapper[i].Height = 300;
+            ZapperTexture.width = sqrt(Zapper[i].Width * Zapper[i].Width + Zapper[i].Height * Zapper[i].Height);
+            ZapperTexture.height = ZapperTexture.width / 4;
+            Zapper[i].PositionStart.x = 100 * (i + 1);
+            Zapper[i].PositionStart.y = 100 * (i + 1);
+            Zapper[i].Angle = atan((float)Zapper[i].Height / Zapper[i].Width) * 180 / PI) * k;
+
+            //cout << sin((float)Zapper[i].Angle * PI / 180) * ZapperTexture.width / 2 << endl;
             SBDL::showTexture(ZapperTexture, Zapper[i].PositionStart.x, Zapper[i].PositionStart.y, Zapper[i].Angle);
-            if (Zapper[i].PositionEnd.x < -500 * (i + 1))
+            Zapper[i].PositionEnd.x = 100 * (i + 1) + 10;
+            if (Zapper[i].PositionEnd.x < -500)
                 DetermineZapper(i);
-            Zapper[i].PositionStart.x -= BackgrondVelocity;
-            Zapper[i].PositionEnd.x = Zapper[i].PositionStart.x + Zapper[i].Width;
             Zapper[i].Rect = {Zapper[i].PositionStart.x + (1 - cos((float)Zapper[i].Angle * PI / 180)) * ZapperTexture.width / 2,
-                              Zapper[i].PositionStart.y - Zapper[i].AngleSign * (sin((float)Zapper[i].Angle * PI / 180) * Zapper[i].size / 2) + ZapperTexture.height / 2,
+                              Zapper[i].PositionStart.y + (sin((float)Zapper[i].Angle * PI / 180) * ZapperTexture.width / 2) + ZapperTexture.height / 2,
                               Zapper[i].Width,
                               Zapper[i].Height};
             SBDL::drawRectangle(Zapper[i].Rect, 0, 0, 0, 200);
         }
+
+        /* Zapper[0].Angle += 10;
+        cout << Zapper[0].Angle << endl;
+        SBDL::showTexture(ZapperTexture, 100 - , 100, Zapper[0].Angle);
+
+        Zapper[0].Rect = {100,
+                          100,
+                          ZapperTexture.width,
+                          ZapperTexture.height};
+        SBDL::drawRectangle(Zapper[0].Rect, 0, 0, 0, 200);*/
+
         //END ZAPPERS
         //COINS
         counterCoin++;
