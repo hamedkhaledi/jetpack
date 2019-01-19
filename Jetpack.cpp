@@ -59,6 +59,7 @@ struct Obstacle
     int ShowRandDelay;
     int ShapeNumber;
     SDL_Rect Rect;
+    SDL_Rect ArrayRect[6];
     int Angle;
     int AngleSign;
     bool active;
@@ -94,11 +95,10 @@ void DetermineZapperPos(int i)
         Zapper[i].PositionStart.x = dist1(rng);
         uniform_int_distribution<std::mt19937::result_type> dist2(100, 350);
         Zapper[i].PositionStart.y = dist2(rng);
-        Zapper[i].size = sqrt(Zapper[i].Width * Zapper[i].Width + Zapper[i].Height * Zapper[i].Height);
-        Zapper[i].Rect = {Zapper[i].PositionStart.x + (1 - cos((float)Zapper[i].Angle * PI / 180)) * Zapper[i].size / 2,
-                          Zapper[i].PositionStart.y - (Zapper[i].AngleSign) * (sin((float)Zapper[i].Angle * PI / 180) * Zapper[i].size / 2) + 15,
-                          Zapper[i].Width,
-                          Zapper[i].Height};
+        Zapper[i].Rect = {Zapper[i].PositionStart.x,
+                          Zapper[i].PositionStart.y - sin((float)90 * PI / 180) * Zapper[i].size / 2 + 15,
+                          Zapper[i].size,
+                          Zapper[i].size};
     } while (SBDL::hasIntersectionRect(Zapper[i].Rect, Coins.Rect) || SBDL::hasIntersectionRect(Zapper[i].Rect, Zapper[(i + 1) % 3].Rect) || SBDL::hasIntersectionRect(Zapper[i].Rect, Zapper[(i + 2) % 3].Rect));
 }
 void DetermineZapper(int i)
@@ -107,7 +107,7 @@ void DetermineZapper(int i)
     rng.seed(std::random_device()());
     if (Zapper[i].ShowRandDelay % 150 == i * 50)
     {
-        uniform_int_distribution<std::mt19937::result_type> dist3(0, 15);
+        uniform_int_distribution<std::mt19937::result_type> dist3(0, 10);
         Zapper[i].ShowRand = dist3(rng);
         Zapper[i].ShowRandDelay = i * 50 + 1;
     }
@@ -115,25 +115,10 @@ void DetermineZapper(int i)
         Zapper[i].ShowRandDelay++;
     if (Zapper[i].ShowRand == 1)
     {
-        uniform_int_distribution<std::mt19937::result_type> dist1(1, 200);
-        Zapper[i].Width = dist1(rng);
-        if (Zapper[i].Width > 100)
-        {
-            uniform_int_distribution<std::mt19937::result_type> dist2(1, 200);
-            Zapper[i].Height = dist2(rng);
-        }
-        else
-        {
-            uniform_int_distribution<std::mt19937::result_type> dist2(150, 250);
-            Zapper[i].Height = dist2(rng);
-        }
-
-        do
-        {
-            uniform_int_distribution<std::mt19937::result_type> RandAngleSign(-1, 1);
-            Zapper[i].AngleSign = RandAngleSign(rng);
-        } while (Zapper[i].AngleSign == 0);
-        Zapper[i].Angle = Zapper[i].AngleSign * (atan((float)Zapper[i].Height / Zapper[i].Width) * 180 / PI);
+        uniform_int_distribution<std::mt19937::result_type> dist1(100, 300);
+        Zapper[i].size = dist1(rng);
+        Zapper[i].Height = Zapper[i].size;
+        Zapper[i].Width = Zapper[i].size;
         cout << Zapper[i].Angle << endl;
         DetermineZapperPos(i);
         Zapper[i].ShowRandDelay = i * 50 + 1;
@@ -217,6 +202,7 @@ void LazerPattern()
     {
         uniform_int_distribution<std::mt19937::result_type> Rand1(0, 1);
         Lazers[i].Show = Rand1(rng);
+        Lazers[i].active = false;
     }
 }
 void Restart()
@@ -247,7 +233,7 @@ int main()
     mt19937 rng;
     rng.seed(random_device()());
     srand(time(NULL));
-    SBDL::InitEngine("Jetpack", 2048, 550);
+    SBDL::InitEngine("Jetpack", 1024, 550);
     Texture BackgroundTexture[4][3];
     Texture BarryTexture[5];
     Texture LazarTexture[3];
@@ -261,8 +247,9 @@ int main()
         BackgroundTexture[1][j] = SBDL::loadTexture("assets/pic/back/Sector" + to_string(j) + ".png");
         BackgroundTexture[2][j] = SBDL::loadTexture("assets/pic/back/Volcano" + to_string(j) + ".png");
         BackgroundTexture[3][j] = SBDL::loadTexture("assets/pic/back/warehouse" + to_string(j) + ".png");
-        LazarTexture[j] = SBDL::loadTexture("assets/pic/lazer/laser" + to_string(j) + ".png");
     }
+    for (int j = 0; j < 4; j++)
+        LazarTexture[j] = SBDL::loadTexture("assets/pic/lazer/laser" + to_string(j) + ".png");
 
     const int FPS = 60;           //frame per second
     const int delay = 1000 / FPS; //delay we need at each frame
@@ -341,8 +328,12 @@ int main()
         Barry.Rect = {50, Barry.Position.y, BarryTexture[Barry.ShapeNumber].width, BarryTexture[Barry.ShapeNumber].height};
         //END BARRY
         //ZAPPERS
+
         for (int i = 0; i < 3; i++)
         {
+            Zapper[i].Angle++;
+            Zapper[i].Height = Zapper[i].size * sin((float)Zapper[i].Angle * PI / 180);
+            Zapper[i].Width = Zapper[i].size * cos((float)Zapper[i].Angle * PI / 180);
             ZapperTexture.width = Zapper[i].size;
             ZapperTexture.height = 30;
             SBDL::showTexture(ZapperTexture, Zapper[i].PositionStart.x, Zapper[i].PositionStart.y, Zapper[i].Angle);
@@ -350,10 +341,17 @@ int main()
                 DetermineZapper(i);
             Zapper[i].PositionStart.x -= BackgrondVelocity;
             Zapper[i].PositionEnd.x = Zapper[i].PositionStart.x + Zapper[i].Width;
-            Zapper[i].Rect = {Zapper[i].PositionStart.x + (1 - cos((float)Zapper[i].Angle * PI / 180)) * ZapperTexture.width / 2,
-                              Zapper[i].PositionStart.y - Zapper[i].AngleSign * (sin((float)Zapper[i].Angle * PI / 180) * Zapper[i].size / 2) + ZapperTexture.height / 2,
-                              Zapper[i].Width,
-                              Zapper[i].Height};
+            for (int j = 0; j < 6; j++)
+            {
+                Zapper[i].ArrayRect[j] = {Zapper[i].PositionStart.x + (1 - cos((float)Zapper[i].Angle * PI / 180)) * ZapperTexture.width / 2 + Zapper[i].Width * j / 6,
+                                          Zapper[i].PositionStart.y - sin((float)Zapper[i].Angle * PI / 180) * Zapper[i].size / 2 + ZapperTexture.height / 2 + Zapper[i].Height * j / 6,
+                                          Zapper[i].Width / 6,
+                                          Zapper[i].Height / 6};
+            }
+            Zapper[i].Rect = {Zapper[i].PositionStart.x,
+                              Zapper[i].PositionStart.y - sin((float)90 * PI / 180) * Zapper[i].size / 2 + 15,
+                              Zapper[i].size,
+                              Zapper[i].size};
             SBDL::drawRectangle(Zapper[i].Rect, 0, 0, 0, 200);
         }
         //END ZAPPERS
@@ -391,7 +389,7 @@ int main()
         {
             if (Lazers[0].ShowRandDelay == 0)
             {
-                uniform_int_distribution<std::mt19937::result_type> Rand(0, 1);
+                uniform_int_distribution<std::mt19937::result_type> Rand(0, 7);
                 if (Rand(rng) == 1)
                     ObstacleMode = lazer;
                 else
@@ -408,6 +406,9 @@ int main()
         //LAZERS
         if (ObstacleMode == lazer)
         {
+            for (int i = 0; i < 3; i++)
+                if (Zapper[i].PositionStart.x > 1024)
+                    Zapper[i].PositionStart.x = -500;
 
             if (Lazers[0].ShowRandDelay > 200 && Lazers[0].ShowRandDelay <= 300)
             {
@@ -419,9 +420,13 @@ int main()
                                       LazarTexture[0].width,
                                       LazarTexture[0].height};
                     if (Lazers[i].Show == true)
-                        SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
+                        if (i < 3)
+                            SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
+                        else
+                            SBDL::showTexture(LazarTexture[3], 0, 10 + 100 * i);
                 }
             }
+
             if (Lazers[0].ShowRandDelay > 300 && Lazers[0].ShowRandDelay <= 450)
             {
                 if (Lazers[0].ShowRandDelay % 10 == 0)
@@ -431,10 +436,7 @@ int main()
                         Lazers[0].ShowRand = 1;
                 for (int i = 0; i < 3; i++)
                     if (Lazers[i].Show == true)
-                    {
                         SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
-                        Lazers[i].active = false;
-                    }
                 for (int i = 3; i < 5; i++)
                     if (Lazers[i].Show == true)
                     {
@@ -442,7 +444,19 @@ int main()
                         SBDL::showTexture(LazarTexture[Lazers[0].ShowRand], 0, 10 + 100 * i);
                     }
             }
-            if (Lazers[0].ShowRandDelay > 450 && Lazers[0].ShowRandDelay <= 600)
+            if ((Lazers[0].ShowRandDelay > 450 && Lazers[0].ShowRandDelay <= 550))
+            {
+                for (int i = 0; i < 5; i++)
+                {
+                    Lazers[i].active = false;
+                    if (Lazers[i].Show == true)
+                        if (i >= 3)
+                            SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
+                        else
+                            SBDL::showTexture(LazarTexture[3], 0, 10 + 100 * i);
+                }
+            }
+            if (Lazers[0].ShowRandDelay > 550 && Lazers[0].ShowRandDelay <= 700)
             {
                 if (Lazers[0].ShowRandDelay % 10 == 0)
                     if (Lazers[0].ShowRand == 1)
@@ -451,10 +465,7 @@ int main()
                         Lazers[0].ShowRand = 1;
                 for (int i = 3; i < 5; i++)
                     if (Lazers[i].Show == true)
-                    {
                         SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
-                        Lazers[i].active = false;
-                    }
                 for (int i = 0; i < 3; i++)
                     if (Lazers[i].Show == true)
                     {
@@ -462,7 +473,7 @@ int main()
                         Lazers[i].active = true;
                     }
             }
-            if (Lazers[0].ShowRandDelay > 600)
+            if (Lazers[0].ShowRandDelay > 700)
             {
                 LazerPattern();
                 ObstacleMode = coin;
