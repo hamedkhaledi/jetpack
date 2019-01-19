@@ -61,6 +61,7 @@ struct Obstacle
     SDL_Rect Rect;
     int Angle;
     int AngleSign;
+    bool active;
 } Coins, Zapper[3], Lazers[3];
 void initializeFlippingCoin(FlippingThing &flipping)
 {
@@ -89,7 +90,7 @@ void DetermineZapperPos(int i)
     rng.seed(std::random_device()());
     do
     {
-        uniform_int_distribution<std::mt19937::result_type> dist1(1024, 4096);
+        uniform_int_distribution<std::mt19937::result_type> dist1(1024, 3072);
         Zapper[i].PositionStart.x = dist1(rng);
         uniform_int_distribution<std::mt19937::result_type> dist2(100, 350);
         Zapper[i].PositionStart.y = dist2(rng);
@@ -157,7 +158,7 @@ void CoinPattern()
     mt19937 rng;
     rng.seed(std::random_device()());
     uniform_int_distribution<std::mt19937::result_type> Rand(1, 27);
-    ifstream fin("assets/coinPatterns/coinPattern" + to_string(1) + ".txt");
+    ifstream fin("assets/coinPatterns/coinPattern" + to_string(Rand(rng)) + ".txt");
     linesCounter = 0;
     eachLineLength = 0;
     string temp;
@@ -246,7 +247,7 @@ int main()
     mt19937 rng;
     rng.seed(random_device()());
     srand(time(NULL));
-    SBDL::InitEngine("Jetpack", 1024, 550);
+    SBDL::InitEngine("Jetpack", 2048, 550);
     Texture BackgroundTexture[4][3];
     Texture BarryTexture[5];
     Texture LazarTexture[3];
@@ -345,7 +346,7 @@ int main()
             ZapperTexture.width = Zapper[i].size;
             ZapperTexture.height = 30;
             SBDL::showTexture(ZapperTexture, Zapper[i].PositionStart.x, Zapper[i].PositionStart.y, Zapper[i].Angle);
-            if (Zapper[i].PositionEnd.x < -500 * (i + 1))
+            if (Zapper[i].PositionEnd.x < -500 * (i + 1) && ObstacleMode == coin)
                 DetermineZapper(i);
             Zapper[i].PositionStart.x -= BackgrondVelocity;
             Zapper[i].PositionEnd.x = Zapper[i].PositionStart.x + Zapper[i].Width;
@@ -390,7 +391,7 @@ int main()
         {
             if (Lazers[0].ShowRandDelay == 0)
             {
-                uniform_int_distribution<std::mt19937::result_type> Rand(1, 1);
+                uniform_int_distribution<std::mt19937::result_type> Rand(0, 1);
                 if (Rand(rng) == 1)
                     ObstacleMode = lazer;
                 else
@@ -411,8 +412,15 @@ int main()
             if (Lazers[0].ShowRandDelay > 200 && Lazers[0].ShowRandDelay <= 300)
             {
                 for (int i = 0; i < 5; i++)
+                {
+                    Lazers[i].active = false;
+                    Lazers[i].Rect = {0,
+                                      10 + 100 * i,
+                                      LazarTexture[0].width,
+                                      LazarTexture[0].height};
                     if (Lazers[i].Show == true)
                         SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
+                }
             }
             if (Lazers[0].ShowRandDelay > 300 && Lazers[0].ShowRandDelay <= 450)
             {
@@ -423,10 +431,16 @@ int main()
                         Lazers[0].ShowRand = 1;
                 for (int i = 0; i < 3; i++)
                     if (Lazers[i].Show == true)
+                    {
                         SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
+                        Lazers[i].active = false;
+                    }
                 for (int i = 3; i < 5; i++)
                     if (Lazers[i].Show == true)
+                    {
+                        Lazers[i].active = true;
                         SBDL::showTexture(LazarTexture[Lazers[0].ShowRand], 0, 10 + 100 * i);
+                    }
             }
             if (Lazers[0].ShowRandDelay > 450 && Lazers[0].ShowRandDelay <= 600)
             {
@@ -437,17 +451,33 @@ int main()
                         Lazers[0].ShowRand = 1;
                 for (int i = 3; i < 5; i++)
                     if (Lazers[i].Show == true)
+                    {
                         SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
+                        Lazers[i].active = false;
+                    }
                 for (int i = 0; i < 3; i++)
                     if (Lazers[i].Show == true)
+                    {
                         SBDL::showTexture(LazarTexture[Lazers[0].ShowRand], 0, 10 + 100 * i);
+                        Lazers[i].active = true;
+                    }
             }
             if (Lazers[0].ShowRandDelay > 600)
             {
                 LazerPattern();
                 ObstacleMode = coin;
             }
-            Lazers[0].ShowRandDelay++;
+            else
+            {
+                for (int i = 0; i < 5; i++)
+                {
+                    if (SBDL::hasIntersectionRect(Barry.Rect, Lazers[i].Rect) && Lazers[i].active)
+                    {
+                        cout << "lose";
+                    }
+                }
+                Lazers[0].ShowRandDelay++;
+            }
         }
 
         //END LAZERS
