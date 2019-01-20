@@ -205,6 +205,23 @@ void LazerPattern()
         Lazers[i].active = false;
     }
 }
+void MisslePattern()
+{
+    mt19937 rng;
+    rng.seed(std::random_device()());
+    uniform_int_distribution<std::mt19937::result_type> Rand(10240, 20480);
+    uniform_int_distribution<std::mt19937::result_type> Rand1(1, 6);
+    CountMislle = Rand1(rng);
+    for (int i = 0; i < CountMislle; i++)
+    {
+        Missle[i].Show = true;
+        Missle[i].Position.x = Rand(rng) + 10 * i;
+        Missle[i].Position.y = Barry.Position.y;
+        Missle[i].Velocity.x = BackgrondVelocity * 2;
+        Missle[i].Velocity.y = 1;
+        cout << Missle[i].Position.x << endl;
+    }
+}
 void Restart()
 {
     CoinPattern();
