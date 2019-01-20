@@ -73,6 +73,7 @@ struct Obstacle
     int Angle;
     int AngleSign;
     bool active;
+    int show[2];
     zappermode ZapperMode;
 } Coins, Zapper[3], Lazers[5];
 struct Things
@@ -233,10 +234,17 @@ void LazerPattern()
     rng.seed(std::random_device()());
     uniform_int_distribution<std::mt19937::result_type> Rand(1024, 2048);
     Lazers[0].PositionStart.x = Rand(rng);
+    uniform_int_distribution<std::mt19937::result_type> Rand1(1, 10);
+    ifstream fin("assets/LazerPatterns/" + to_string(Rand1(rng)));
+    for (int i = 0; i < 2; i++)
+        for (int j = 0; j < 5; j++)
+            fin >> Lazers[j].show[i];
     for (int i = 0; i < 5; i++)
     {
-        uniform_int_distribution<std::mt19937::result_type> Rand1(0, 1);
-        Lazers[i].Show = Rand1(rng);
+        if (Lazers[i].show[0] == 0 && Lazers[i].show[1] == 0)
+            Lazers[i].Show = false;
+        else
+            Lazers[i].Show = true;
         Lazers[i].active = false;
     }
 }
@@ -587,7 +595,7 @@ int main()
             {
                 if (Lazers[0].ShowRandDelay == 0)
                 {
-                    uniform_int_distribution<std::mt19937::result_type> Rand(0, 4);
+                    uniform_int_distribution<std::mt19937::result_type> Rand(0, 5);
                     if (Rand(rng) == 1)
                         ObstacleMode = lazer;
                     else
@@ -726,10 +734,12 @@ int main()
                                           LazarTexture[0].width,
                                           LazarTexture[0].height};
                         if (Lazers[i].Show == true)
-                            if (i < 3)
+                        {
+                            if (Lazers[i].show[0] == 0)
                                 SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
                             else
                                 SBDL::showTexture(LazarTexture[3], 0, 10 + 100 * i);
+                        }
                     }
                 }
 
@@ -740,48 +750,58 @@ int main()
                             Lazers[0].ShowRand = 2;
                         else
                             Lazers[0].ShowRand = 1;
-                    for (int i = 0; i < 3; i++)
-                        if (Lazers[i].Show == true)
-                            SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
-                    for (int i = 3; i < 5; i++)
+                    for (int i = 0; i < 5; i++)
+                    {
                         if (Lazers[i].Show == true)
                         {
-                            Lazers[i].active = true;
-                            SBDL::showTexture(LazarTexture[Lazers[0].ShowRand], 0, 10 + 100 * i);
-                        }
-                }
-                if (Lazers[0].Show || Lazers[1].Show || Lazers[2].Show)
-                {
-                    if (Lazers[0].ShowRandDelay > 550 && Lazers[0].ShowRandDelay <= 650)
-                    {
-                        for (int i = 0; i < 5; i++)
-                        {
-                            Lazers[i].active = false;
-                            if (Lazers[i].Show == true)
-                                if (i >= 3)
-                                    SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
-                                else
-                                    SBDL::showTexture(LazarTexture[3], 0, 10 + 100 * i);
-                        }
-                    }
-                    if (Lazers[0].ShowRandDelay > 650 && Lazers[0].ShowRandDelay <= 800)
-                    {
-                        if (Lazers[0].ShowRandDelay % 10 == 0)
-                            if (Lazers[0].ShowRand == 1)
-                                Lazers[0].ShowRand = 2;
-                            else
-                                Lazers[0].ShowRand = 1;
-                        for (int i = 3; i < 5; i++)
-                            if (Lazers[i].Show == true)
-                                SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
-                        for (int i = 0; i < 3; i++)
-                            if (Lazers[i].Show == true)
+
+                            if (Lazers[i].show[0] == 1)
                             {
-                                SBDL::showTexture(LazarTexture[Lazers[0].ShowRand], 0, 10 + 100 * i);
                                 Lazers[i].active = true;
+                                SBDL::showTexture(LazarTexture[Lazers[0].ShowRand], 0, 10 + 100 * i);
                             }
+                            else
+                                SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
+                        }
                     }
                 }
+                if (Lazers[0].ShowRandDelay > 550 && Lazers[0].ShowRandDelay <= 650)
+                {
+                    for (int i = 0; i < 5; i++)
+                    {
+                        Lazers[i].active = false;
+                        if (Lazers[i].Show == true)
+                        {
+                            if (Lazers[i].show[1] == 0)
+                                SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
+                            else
+                                SBDL::showTexture(LazarTexture[3], 0, 10 + 100 * i);
+                        }
+                    }
+                }
+                if (Lazers[0].ShowRandDelay > 650 && Lazers[0].ShowRandDelay <= 800)
+                {
+                    if (Lazers[0].ShowRandDelay % 10 == 0)
+                        if (Lazers[0].ShowRand == 1)
+                            Lazers[0].ShowRand = 2;
+                        else
+                            Lazers[0].ShowRand = 1;
+                    for (int i = 0; i < 5; i++)
+                    {
+                        if (Lazers[i].Show == true)
+                        {
+
+                            if (Lazers[i].show[1] == 1)
+                            {
+                                Lazers[i].active = true;
+                                SBDL::showTexture(LazarTexture[Lazers[0].ShowRand], 0, 10 + 100 * i);
+                            }
+                            else
+                                SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
+                        }
+                    }
+                }
+
                 if (Lazers[0].ShowRandDelay > 800)
                 {
                     LazerPattern();
@@ -818,10 +838,67 @@ int main()
                 ZapperTexture.width = Zapper[i].size;
                 SBDL::showTexture(ZapperTexture, Zapper[i].PositionStart.x, Zapper[i].PositionStart.y, Zapper[i].Angle);
             }
-            //for (int i = 0; i < 5; i++)
-            //if (Lazers[i].Show)
-            //SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
-            //اینجا باید درست شه
+            //LAZERS
+            if (ObstacleMode == lazer)
+            {
+
+                if (Lazers[0].ShowRandDelay > 300 && Lazers[0].ShowRandDelay <= 400) // 5 ta gheir faal
+                {
+                    for (int i = 0; i < 5; i++)
+                    {
+                        if (Lazers[i].Show == true)
+                        {
+                            if (Lazers[i].show[0] == 0)
+                                SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
+                            else
+                                SBDL::showTexture(LazarTexture[3], 0, 10 + 100 * i);
+                        }
+                    }
+                }
+
+                if (Lazers[0].ShowRandDelay > 400 && Lazers[0].ShowRandDelay <= 550) // 3 ta 5 faal
+                {
+                    for (int i = 0; i < 5; i++)
+                    {
+                        if (Lazers[i].Show == true)
+                        {
+
+                            if (Lazers[i].show[0] == 1)
+                                SBDL::showTexture(LazarTexture[Lazers[0].ShowRand], 0, 10 + 100 * i);
+                            else
+                                SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
+                        }
+                    }
+                }
+                if (Lazers[0].ShowRandDelay > 550 && Lazers[0].ShowRandDelay <= 650)
+                {
+                    for (int i = 0; i < 5; i++)
+                    {
+                        if (Lazers[i].Show == true)
+                        {
+                            if (Lazers[i].show[1] == 0)
+                                SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
+                            else
+                                SBDL::showTexture(LazarTexture[3], 0, 10 + 100 * i);
+                        }
+                    }
+                }
+                if (Lazers[0].ShowRandDelay > 650 && Lazers[0].ShowRandDelay <= 800)
+                {
+                    for (int i = 0; i < 5; i++)
+                    {
+                        if (Lazers[i].Show == true)
+                        {
+
+                            if (Lazers[i].show[1] == 1)
+                                SBDL::showTexture(LazarTexture[Lazers[0].ShowRand], 0, 10 + 100 * i);
+                            else
+                                SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
+                        }
+                    }
+                }
+            }
+            //
             if (Barry.Gravity == false)
                 SBDL::showTexture(BarryTexture[Barry.ShapeNumber], 50, Barry.Position.y);
             else
