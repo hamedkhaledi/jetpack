@@ -14,6 +14,7 @@ int BackgrondVelocity = 8;
 int counterCoin = 0;
 int linesCounter, eachLineLength;
 int **grid;
+int CountMislle;
 
 struct Pos
 {
@@ -63,7 +64,18 @@ struct Obstacle
     int Angle;
     int AngleSign;
     bool active;
-} Coins, Zapper[3], Lazers[3];
+} Coins, Zapper[3], Lazers[5];
+struct missle
+{
+    Pos Position;
+    bool Show;
+    int showDalay;
+    Pos Velocity;
+    int TextureNumber;
+    SDL_Rect Rect;
+    Pos PositionStart;
+    int FirstScore;
+} Missle[6], SpeedToken;
 void initializeFlippingCoin(FlippingThing &flipping)
 {
     flipping.images = new Texture[6];
@@ -93,7 +105,7 @@ void DetermineZapperPos(int i)
     {
         uniform_int_distribution<std::mt19937::result_type> dist1(1024, 3072);
         Zapper[i].PositionStart.x = dist1(rng);
-        uniform_int_distribution<std::mt19937::result_type> dist2(100, 350);
+        uniform_int_distribution<std::mt19937::result_type> dist2(Zapper[i].size, 520 - Zapper[i].size);
         Zapper[i].PositionStart.y = dist2(rng);
         Zapper[i].Rect = {Zapper[i].PositionStart.x,
                           Zapper[i].PositionStart.y - sin((float)90 * PI / 180) * Zapper[i].size / 2 + 15,
@@ -115,11 +127,10 @@ void DetermineZapper(int i)
         Zapper[i].ShowRandDelay++;
     if (Zapper[i].ShowRand == 1)
     {
-        uniform_int_distribution<std::mt19937::result_type> dist1(100, 300);
+        uniform_int_distribution<std::mt19937::result_type> dist1(200, 300);
         Zapper[i].size = dist1(rng);
         Zapper[i].Height = Zapper[i].size;
         Zapper[i].Width = Zapper[i].size;
-        cout << Zapper[i].Angle << endl;
         DetermineZapperPos(i);
         Zapper[i].ShowRandDelay = i * 50 + 1;
     }
@@ -216,15 +227,56 @@ void MisslePattern()
     {
         Missle[i].Show = true;
         Missle[i].Position.x = Rand(rng) + 10 * i;
-        Missle[i].Position.y = Barry.Position.y;
+        uniform_int_distribution<std::mt19937::result_type> Rand2(10, 500);
+        Missle[i].Position.y = Rand2(rng);
         Missle[i].Velocity.x = BackgrondVelocity * 2;
-        Missle[i].Velocity.y = 1;
-        cout << Missle[i].Position.x << endl;
+        Missle[i].Velocity.y = 2;
+        Missle[i].TextureNumber = 0;
+        Missle[i].showDalay = 0;
     }
+}
+void SpeedTokenPattern()
+{
+    mt19937 rng;
+    rng.seed(std::random_device()());
+    uniform_int_distribution<std::mt19937::result_type> Rand(2048, 10240);
+    uniform_int_distribution<std::mt19937::result_type> Rand2(150, 400);
+    uniform_int_distribution<std::mt19937::result_type> Rand3(50, 100);
+    SpeedToken.Show = true;
+    SpeedToken.Position.x = Rand(rng);
+    SpeedToken.PositionStart.y = Rand2(rng); //shoro harekat sinosi
+    SpeedToken.Velocity.x = BackgrondVelocity / 2;
+    SpeedToken.Velocity.y = Rand3(rng); //damane harekat sinosi
+    SpeedToken.TextureNumber = 0;
+    SpeedToken.showDalay = 0;
+    SpeedToken.FirstScore = 0;
+}
+void DisableAllObstales()
+{
+    for (int i = 0; i < 3; i++)
+        Zapper[i].Show = false;
+    for (int i = 0; i < 5; i++)
+        Lazers[i].Show = false;
+    for (int i = 0; i < 6; i++)
+        Missle[i].Show = false;
+    SpeedToken.Show = false;
+}
+void EnableAllObstales()
+{
+    if (ObstacleMode == lazer)
+        LazerPattern();
+    for (int i = 0; i < 3; i++)
+        Zapper[i].Show = true;
+    for (int i = 0; i < 6; i++)
+        Missle[i].Show = true;
+    SpeedToken.Show = true;
 }
 void Restart()
 {
     CoinPattern();
+    LazerPattern();
+    MisslePattern();
+    SpeedTokenPattern();
     srand(time(NULL));
 
     Background1[0].show = true;
@@ -243,7 +295,6 @@ void Restart()
     Barry.vel = 0;
     Barry.ShapeNumber = 1;
     RunCounter = 0;
-    LazerPattern();
 }
 int main()
 {
@@ -252,21 +303,32 @@ int main()
     srand(time(NULL));
     SBDL::InitEngine("Jetpack", 1024, 550);
     Texture BackgroundTexture[4][3];
-    Texture BarryTexture[5];
-    Texture LazarTexture[3];
+    Texture BarryTexture[6];
+    Texture LazarTexture[4];
+    Texture WarninigMissleTexture[3];
+    Texture MissleTexture[6];
+    Texture SmokeTexture[6];
+    Texture SpeedTokenTexture[4];
     Texture ZapperTexture = SBDL::loadTexture("assets/pic/zappers/h1.png");
-
+    for (int j = 0; j < 4; j++)
+    {
+        LazarTexture[j] = SBDL::loadTexture("assets/pic/lazer/laser" + to_string(j) + ".png");
+        SpeedTokenTexture[j] = SBDL::loadTexture("assets/pic/speedToken/speed token" + to_string(j + 1) + ".png");
+    }
     for (int j = 1; j <= 5; j++)
         BarryTexture[j] = SBDL::loadTexture("assets/pic/barry/barry" + to_string(j) + ".png");
+    for (int j = 0; j < 6; j++)
+        SmokeTexture[j] = SBDL::loadTexture("assets/pic/smoke/smoke " + to_string(j + 1) + ".png");
+    for (int j = 0; j < 6; j++)
+        MissleTexture[j] = SBDL::loadTexture("assets/pic/missle/missle (" + to_string(j + 1) + ").png");
     for (int j = 0; j < 3; j++)
     {
         BackgroundTexture[0][j] = SBDL::loadTexture("assets/pic/back/Lab" + to_string(j) + ".png");
         BackgroundTexture[1][j] = SBDL::loadTexture("assets/pic/back/Sector" + to_string(j) + ".png");
         BackgroundTexture[2][j] = SBDL::loadTexture("assets/pic/back/Volcano" + to_string(j) + ".png");
         BackgroundTexture[3][j] = SBDL::loadTexture("assets/pic/back/warehouse" + to_string(j) + ".png");
+        WarninigMissleTexture[j] = SBDL::loadTexture("assets/pic/missle/" + to_string(j + 1) + "m.png");
     }
-    for (int j = 0; j < 4; j++)
-        LazarTexture[j] = SBDL::loadTexture("assets/pic/lazer/laser" + to_string(j) + ".png");
 
     const int FPS = 60;           //frame per second
     const int delay = 1000 / FPS; //delay we need at each frame
@@ -282,7 +344,9 @@ int main()
         int startTime = SBDL::getTime();
         SBDL::updateEvents();
         SBDL::clearRenderScreen();
-
+        Score++;
+        if (Score % 500 == 0)
+            BackgrondVelocity += 1;
         //BACKGROUND
         for (int i = 0, j; i < 3; i++)
         {
@@ -364,12 +428,13 @@ int main()
                                           Zapper[i].PositionStart.y - sin((float)Zapper[i].Angle * PI / 180) * Zapper[i].size / 2 + ZapperTexture.height / 2 + Zapper[i].Height * j / 6,
                                           Zapper[i].Width / 6,
                                           Zapper[i].Height / 6};
+                SBDL::drawRectangle(Zapper[i].ArrayRect[j], 0, 0, 0, 200);
             }
             Zapper[i].Rect = {Zapper[i].PositionStart.x,
                               Zapper[i].PositionStart.y - sin((float)90 * PI / 180) * Zapper[i].size / 2 + 15,
                               Zapper[i].size,
                               Zapper[i].size};
-            SBDL::drawRectangle(Zapper[i].Rect, 0, 0, 0, 200);
+            ;
         }
         //END ZAPPERS
         //COINS
@@ -386,7 +451,6 @@ int main()
                     if (SBDL::hasIntersectionRect(Barry.Rect, coinsAr[i][j].Rect) && coinsAr[i][j].show)
                     {
                         coinsAr[i][j].show = false;
-                        Score++;
                     }
 
                     if (coinsAr[i][j].show)
@@ -406,7 +470,7 @@ int main()
         {
             if (Lazers[0].ShowRandDelay == 0)
             {
-                uniform_int_distribution<std::mt19937::result_type> Rand(0, 7);
+                uniform_int_distribution<std::mt19937::result_type> Rand(0, 4);
                 if (Rand(rng) == 1)
                     ObstacleMode = lazer;
                 else
@@ -418,8 +482,89 @@ int main()
                 Lazers[0].ShowRandDelay = 0;
             }
         }
-
         //END COINS
+        //MISSLE
+        int TedadMoshakRadshode = 0; //تعداد موشک های رد شده از صفحه
+        if (ObstacleMode == lazer)
+            for (int i = 0; i < 6; i++)
+                if (Missle[i].Position.x > 3072 || Missle[i].Position.x < -200)
+                    Missle[i].Position.x = -500;
+        for (int i = 0; i < CountMislle; i++)
+        {
+            if (Missle[i].Position.x < 3072 && Missle[i].Position.x >= 2000)
+            {
+                SBDL::showTexture(WarninigMissleTexture[0], 1024 - WarninigMissleTexture[1].width, Missle[i].Position.y);
+                if (Barry.Position.y - Missle[i].Position.y < 0)
+                    Missle[i].Position.y -= Missle[i].Velocity.y;
+                else if (Barry.Position.y - Missle[i].Position.y > 0)
+                    Missle[i].Position.y += Missle[i].Velocity.y;
+            }
+            else if (Missle[i].Position.x < 2000 && Missle[i].Position.x >= 1024)
+                SBDL::showTexture(WarninigMissleTexture[1], 1024 - WarninigMissleTexture[1].width, Missle[i].Position.y);
+            else if (Missle[i].Position.x < 1024 && Missle[i].Position.x >= -200)
+            {
+                if (Missle[i].showDalay % 3 == 0)
+                    Missle[i].TextureNumber = (Missle[i].TextureNumber + 1) % 6;
+                Missle[i].Rect = {
+                    Missle[i].Position.x,
+                    Missle[i].Position.y,
+                    MissleTexture[Missle[i].TextureNumber].width,
+                    MissleTexture[Missle[i].TextureNumber].height};
+                SBDL::drawRectangle(Missle[i].Rect, 0, 0, 0, 200);
+                SBDL::showTexture(MissleTexture[Missle[i].TextureNumber], Missle[i].Position.x, Missle[i].Position.y);
+                SBDL::showTexture(SmokeTexture[Missle[i].TextureNumber], Missle[i].Position.x + MissleTexture[Missle[i].TextureNumber].width, Missle[i].Position.y);
+                Missle[i].showDalay++;
+            }
+            Missle[i].Position.x -= Missle[i].Velocity.x;
+            if (Missle[i].Position.x <= -500)
+                TedadMoshakRadshode++;
+        }
+        if (TedadMoshakRadshode == CountMislle && ObstacleMode == coin)
+            MisslePattern();
+        //END MISSLE
+        //SPEEDTOKEN
+        if (ObstacleMode == lazer)
+            if (SpeedToken.Position.x > 1024)
+                SpeedToken.Position.x = -500;
+        if (SpeedToken.Position.x < 1024 && SpeedToken.Position.x >= -200 && SpeedToken.Show == true)
+        {
+            if (SpeedToken.showDalay % 5 == 0)
+                SpeedToken.TextureNumber = (SpeedToken.TextureNumber + 1) % 4;
+            SBDL::showTexture(SpeedTokenTexture[SpeedToken.TextureNumber], SpeedToken.Position.x, SpeedToken.Position.y);
+            SpeedToken.Position.y = SpeedToken.PositionStart.y + SpeedToken.Velocity.y * sin(2 * SpeedToken.showDalay * PI / 180);
+            SpeedToken.showDalay++;
+        }
+        SpeedToken.Rect = {
+            SpeedToken.Position.x,
+            SpeedToken.Position.y,
+            SpeedTokenTexture[SpeedToken.TextureNumber].width,
+            SpeedTokenTexture[SpeedToken.TextureNumber].height};
+        SBDL::drawRectangle(SpeedToken.Rect, 0, 0, 0, 200);
+        SpeedToken.Position.x -= SpeedToken.Velocity.x;
+        if (SBDL::hasIntersectionRect(Barry.Rect, SpeedToken.Rect) && SpeedToken.Show && SpeedToken.FirstScore == 0)
+        {
+            SpeedToken.Show = false;
+            SpeedToken.FirstScore = Score;
+            SpeedToken.Position.x = -100;
+            BackgrondVelocity *= 4;
+        }
+
+        if (SpeedToken.FirstScore > 0)
+        {
+            DisableAllObstales();
+            if (Score - SpeedToken.FirstScore > 500)
+            {
+                BackgrondVelocity = BackgrondVelocity / 4;
+                SpeedToken.FirstScore = 0;
+                cout << "yes";
+                ObstacleMode = coin;
+                EnableAllObstales();
+            }
+            //Disable all obsatcles
+        }
+        else if (SpeedToken.Position.x <= -500)
+            SpeedTokenPattern();
+        //END SPEEDTOKEN
         //LAZERS
         if (ObstacleMode == lazer)
         {
@@ -427,7 +572,7 @@ int main()
                 if (Zapper[i].PositionStart.x > 1024)
                     Zapper[i].PositionStart.x = -500;
 
-            if (Lazers[0].ShowRandDelay > 200 && Lazers[0].ShowRandDelay <= 300)
+            if (Lazers[0].ShowRandDelay > 300 && Lazers[0].ShowRandDelay <= 400) // 5 ta gheir faal
             {
                 for (int i = 0; i < 5; i++)
                 {
@@ -444,7 +589,7 @@ int main()
                 }
             }
 
-            if (Lazers[0].ShowRandDelay > 300 && Lazers[0].ShowRandDelay <= 450)
+            if (Lazers[0].ShowRandDelay > 400 && Lazers[0].ShowRandDelay <= 550) // 3 ta 5 faal
             {
                 if (Lazers[0].ShowRandDelay % 10 == 0)
                     if (Lazers[0].ShowRand == 1)
@@ -461,36 +606,39 @@ int main()
                         SBDL::showTexture(LazarTexture[Lazers[0].ShowRand], 0, 10 + 100 * i);
                     }
             }
-            if ((Lazers[0].ShowRandDelay > 450 && Lazers[0].ShowRandDelay <= 550))
+            if (Lazers[0].Show || Lazers[1].Show || Lazers[2].Show)
             {
-                for (int i = 0; i < 5; i++)
+                if (Lazers[0].ShowRandDelay > 550 && Lazers[0].ShowRandDelay <= 650)
                 {
-                    Lazers[i].active = false;
-                    if (Lazers[i].Show == true)
-                        if (i >= 3)
-                            SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
+                    for (int i = 0; i < 5; i++)
+                    {
+                        Lazers[i].active = false;
+                        if (Lazers[i].Show == true)
+                            if (i >= 3)
+                                SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
+                            else
+                                SBDL::showTexture(LazarTexture[3], 0, 10 + 100 * i);
+                    }
+                }
+                if (Lazers[0].ShowRandDelay > 650 && Lazers[0].ShowRandDelay <= 800)
+                {
+                    if (Lazers[0].ShowRandDelay % 10 == 0)
+                        if (Lazers[0].ShowRand == 1)
+                            Lazers[0].ShowRand = 2;
                         else
-                            SBDL::showTexture(LazarTexture[3], 0, 10 + 100 * i);
+                            Lazers[0].ShowRand = 1;
+                    for (int i = 3; i < 5; i++)
+                        if (Lazers[i].Show == true)
+                            SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
+                    for (int i = 0; i < 3; i++)
+                        if (Lazers[i].Show == true)
+                        {
+                            SBDL::showTexture(LazarTexture[Lazers[0].ShowRand], 0, 10 + 100 * i);
+                            Lazers[i].active = true;
+                        }
                 }
             }
-            if (Lazers[0].ShowRandDelay > 550 && Lazers[0].ShowRandDelay <= 700)
-            {
-                if (Lazers[0].ShowRandDelay % 10 == 0)
-                    if (Lazers[0].ShowRand == 1)
-                        Lazers[0].ShowRand = 2;
-                    else
-                        Lazers[0].ShowRand = 1;
-                for (int i = 3; i < 5; i++)
-                    if (Lazers[i].Show == true)
-                        SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
-                for (int i = 0; i < 3; i++)
-                    if (Lazers[i].Show == true)
-                    {
-                        SBDL::showTexture(LazarTexture[Lazers[0].ShowRand], 0, 10 + 100 * i);
-                        Lazers[i].active = true;
-                    }
-            }
-            if (Lazers[0].ShowRandDelay > 700)
+            if (Lazers[0].ShowRandDelay > 800)
             {
                 LazerPattern();
                 ObstacleMode = coin;
@@ -499,9 +647,9 @@ int main()
             {
                 for (int i = 0; i < 5; i++)
                 {
-                    if (SBDL::hasIntersectionRect(Barry.Rect, Lazers[i].Rect) && Lazers[i].active)
+                    if (SBDL::hasIntersectionRect(Barry.Rect, Lazers[i].Rect) && Lazers[i].active && Lazers[i].Show)
                     {
-                        cout << "lose";
+                        // cout << "lose";
                     }
                 }
                 Lazers[0].ShowRandDelay++;
@@ -509,6 +657,7 @@ int main()
         }
 
         //END LAZERS
+
         SBDL::updateRenderScreen();
         int elapsedTime = SBDL::getTime() - startTime;
         if (elapsedTime < delay)
