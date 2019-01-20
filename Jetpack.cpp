@@ -120,7 +120,7 @@ void DetermineZapperPos(int i)
                           Zapper[i].PositionStart.y - sin((float)90 * PI / 180) * Zapper[i].size / 2 + 15,
                           Zapper[i].size,
                           Zapper[i].size};
-    } while (SBDL::hasIntersectionRect(Zapper[i].Rect, Coins.Rect) || SBDL::hasIntersectionRect(Zapper[i].Rect, Zapper[(i + 1) % 3].Rect) || SBDL::hasIntersectionRect(Zapper[i].Rect, Zapper[(i + 2) % 3].Rect));
+    } while (SBDL::hasIntersectionRect(Zapper[i].Rect, Coins.Rect) || SBDL::hasIntersectionRect(Zapper[i].Rect, Zapper[(i + 1) % 3].Rect) || SBDL::hasIntersectionRect(Zapper[i].Rect, Zapper[(i + 2) % 3].Rect) || SBDL::hasIntersectionRect(Zapper[i].Rect, GravityToken.Rect));
 }
 void DetermineZapper(int i)
 {
@@ -277,7 +277,20 @@ void GravityTokenPattern()
     GravityToken.Show = true;
     GravityToken.Position.x = Rand(rng);
     GravityToken.Position.y = Rand2(rng);
+    GravityToken.Rect = {GravityToken.Position.x, GravityToken.Position.y, 70, 70};
     GravityToken.Velocity.x = BackgrondVelocity;
+    int i = -1;
+    while (i < 2)
+    {
+        i++;
+        if (SBDL::hasIntersectionRect(Zapper[i].Rect, GravityToken.Rect))
+        {
+            i = -1;
+            GravityToken.Position.x = Rand(rng);
+            GravityToken.Position.y = Rand2(rng);
+            GravityToken.Rect = {GravityToken.Position.x, GravityToken.Position.y, 70, 70};
+        }
+    }
 }
 void DisableAllObstales()
 {
