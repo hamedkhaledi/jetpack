@@ -234,7 +234,7 @@ void LazerPattern()
     rng.seed(std::random_device()());
     uniform_int_distribution<std::mt19937::result_type> Rand(1024, 2048);
     Lazers[0].PositionStart.x = Rand(rng);
-    uniform_int_distribution<std::mt19937::result_type> Rand1(1, 10);
+    uniform_int_distribution<std::mt19937::result_type> Rand1(1, 20);
     ifstream fin("assets/LazerPatterns/" + to_string(Rand1(rng)));
     for (int i = 0; i < 2; i++)
         for (int j = 0; j < 5; j++)
