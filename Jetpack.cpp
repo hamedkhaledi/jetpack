@@ -15,7 +15,8 @@ int counterCoin = 0;
 int linesCounter, eachLineLength;
 int **grid;
 int CountMislle;
-
+bool Pause;
+bool MusicOn;
 struct Pos
 {
     float x, y;
@@ -85,6 +86,12 @@ struct Things
     Pos PositionStart;
     int FirstScore;
 } Missle[6], SpeedToken, GravityToken;
+void playmusic()
+{
+    srand(time(NULL));
+    Music *BackGroundMusic = SBDL::loadMusic("assets/sound/music" + to_string(rand() % 2 + 1));
+    SBDL::playMusic(BackGroundMusic, -1);
+}
 void initializeFlippingCoin(FlippingThing &flipping)
 {
     flipping.images = new Texture[6];
@@ -337,6 +344,7 @@ void Restart()
     srand(time(NULL));
     Background1[0].show = true;
     Background2[0].show = false;
+    Pause = false;
     for (int i = 0; i < 3; i++)
     {
         Background1[i].Position.x = 2048 * i;
@@ -359,6 +367,10 @@ int main()
     Texture SpeedTokenTexture[4];
     Texture BarryGravityTexture[6];
     Texture ZapperTexture = SBDL::loadTexture("assets/pic/zappers/h1.png");
+    Texture PauseTexture = SBDL::loadTexture("assets/pic/menu/Pause.png");
+    Texture ResumeTexture = SBDL::loadTexture("assets/pic/menu/resume.png");
+    Texture SoundOffTexture = SBDL::loadTexture("assets/pic/menu/sound on.png");
+    Texture SoundOnTexture = SBDL::loadTexture("assets/pic/menu/sound off.png");
     Texture GravityTokenTexture = SBDL::loadTexture("assets/pic/menu/gravity_token.png");
     for (int j = 0; j < 4; j++)
     {
@@ -396,398 +408,483 @@ int main()
         int startTime = SBDL::getTime();
         SBDL::updateEvents();
         SBDL::clearRenderScreen();
-        Score++;
-        if (Score % 500 == 0)
-            BackgrondVelocity += 1;
-        //BACKGROUND
-        for (int i = 0, j; i < 3; i++)
+        if (Pause == false)
         {
-            SBDL::showTexture(BackgroundTexture[r1][i], Background1[i].Position.x, 0);
-            SBDL::showTexture(BackgroundTexture[r2][i], Background2[i].Position.x, 0);
-            Background1[i].Position.x -= BackgrondVelocity;
-            Background2[i].Position.x -= BackgrondVelocity;
-            if (Background1[2].Position.x <= -2048)
+            Score++;
+            if (Score % 500 == 0)
+                BackgrondVelocity += 1;
+            //BACKGROUND
+            for (int i = 0, j; i < 3; i++)
             {
-                j = rand() % 4;     //// safhe tekrari load nashe
-                while (r2 == j)     //// safhe tekrari load nashe
-                    j = rand() % 4; //// safhe tekrari load nashe
-                r1 = j;             //// safhe tekrari load nashe
-                RestartBackground(Background1);
-                Background2[0].show = true;
+                SBDL::showTexture(BackgroundTexture[r1][i], Background1[i].Position.x, 0);
+                SBDL::showTexture(BackgroundTexture[r2][i], Background2[i].Position.x, 0);
+                Background1[i].Position.x -= BackgrondVelocity;
+                Background2[i].Position.x -= BackgrondVelocity;
+                if (Background1[2].Position.x <= -2048)
+                {
+                    j = rand() % 4;     //// safhe tekrari load nashe
+                    while (r2 == j)     //// safhe tekrari load nashe
+                        j = rand() % 4; //// safhe tekrari load nashe
+                    r1 = j;             //// safhe tekrari load nashe
+                    RestartBackground(Background1);
+                    Background2[0].show = true;
+                }
+                if (Background2[2].Position.x <= -2048)
+                {
+                    j = rand() % 4;     //// safhe tekrari load nashe
+                    while (r1 == j)     //// safhe tekrari load nashe
+                        j = rand() % 4; //// safhe tekrari load nashe
+                    r2 = j;             //// safhe tekrari load nashe
+                    RestartBackground(Background2);
+                    Background1[0].show = true;
+                }
             }
-            if (Background2[2].Position.x <= -2048)
+            //END BACKGROUND
+            //BARRY
+            if (Barry.Gravity == false)
             {
-                j = rand() % 4;     //// safhe tekrari load nashe
-                while (r1 == j)     //// safhe tekrari load nashe
-                    j = rand() % 4; //// safhe tekrari load nashe
-                r2 = j;             //// safhe tekrari load nashe
-                RestartBackground(Background2);
-                Background1[0].show = true;
-            }
-        }
-        //END BACKGROUND
-        //BARRY
-        if (Barry.Gravity == false)
-        {
-            if (SBDL::keyHeld(SDL_SCANCODE_SPACE))
-            {
-                RunCounter = 0;
+                if (SBDL::keyHeld(SDL_SCANCODE_SPACE))
+                {
+                    RunCounter = 0;
 
-                Barry.vel -= 0.3;
-                Barry.ShapeNumber = 3;
-            }
-            else if (Barry.Position.y < 455)
-            {
-                RunCounter = 0;
-                Barry.vel += 0.3;
-                Barry.ShapeNumber = 4;
-            }
-            Barry.Position.y += Barry.vel;
-            if (Barry.Position.y <= 10)
-            {
-
-                Barry.Position.y = 10;
-                Barry.vel = 0;
-            }
-            if (Barry.Position.y >= 455)
-            {
-                if (RunCounter % 20 < 10)
-                    Barry.ShapeNumber = 2;
-                else
-                    Barry.ShapeNumber = 1;
-
-                RunCounter++;
-                Barry.Position.y = 455;
-                Barry.vel = 0;
-            }
-            SBDL::showTexture(BarryTexture[Barry.ShapeNumber], 50, Barry.Position.y);
-            Barry.Rect = {50, Barry.Position.y, BarryTexture[Barry.ShapeNumber].width, BarryTexture[Barry.ShapeNumber].height};
-        }
-        else
-        {
-            if (SBDL::keyPressed(SDL_SCANCODE_SPACE))
-            {
-                RunCounter = 0;
-                Barry.MoveDirection *= -1;
-                Barry.vel += 0;
-                if (Barry.MoveDirection == 1)
-                    Barry.ShapeNumber = 4;
-                else
-                    Barry.ShapeNumber = 5;
-            }
-            Barry.vel += Barry.MoveDirection * 0.3;
-            Barry.Position.y += Barry.vel;
-            if (Barry.Position.y <= 10)
-            {
-                if (RunCounter % 20 < 10)
-                    Barry.ShapeNumber = 2;
-                else
+                    Barry.vel -= 0.3;
                     Barry.ShapeNumber = 3;
-                RunCounter++;
-                Barry.Position.y = 10;
-                Barry.vel = 0;
+                }
+                else if (Barry.Position.y < 455)
+                {
+                    RunCounter = 0;
+                    Barry.vel += 0.3;
+                    Barry.ShapeNumber = 4;
+                }
+                Barry.Position.y += Barry.vel;
+                if (Barry.Position.y <= 10)
+                {
+
+                    Barry.Position.y = 10;
+                    Barry.vel = 0;
+                }
+                if (Barry.Position.y >= 455)
+                {
+                    if (RunCounter % 20 < 10)
+                        Barry.ShapeNumber = 2;
+                    else
+                        Barry.ShapeNumber = 1;
+
+                    RunCounter++;
+                    Barry.Position.y = 455;
+                    Barry.vel = 0;
+                }
+                SBDL::showTexture(BarryTexture[Barry.ShapeNumber], 50, Barry.Position.y);
+                Barry.Rect = {50, Barry.Position.y, BarryTexture[Barry.ShapeNumber].width, BarryTexture[Barry.ShapeNumber].height};
             }
-            if (Barry.Position.y >= 455)
-            {
-                if (RunCounter % 20 < 10)
-                    Barry.ShapeNumber = 0;
-                else
-                    Barry.ShapeNumber = 1;
-
-                RunCounter++;
-                Barry.Position.y = 455;
-                Barry.vel = 0;
-            }
-            SBDL::showTexture(BarryGravityTexture[Barry.ShapeNumber], 50, Barry.Position.y);
-            Barry.Rect = {50, Barry.Position.y, BarryGravityTexture[Barry.ShapeNumber].width, BarryGravityTexture[Barry.ShapeNumber].height};
-        }
-
-        //END BARRY
-        //ZAPPERS
-
-        for (int i = 0; i < 3; i++)
-        {
-            if (Zapper[i].ZapperMode == vertical)
-                Zapper[i].Angle = 90;
-            else if (Zapper[i].ZapperMode == Horizontal)
-                Zapper[i].Angle = 0;
             else
-                Zapper[i].Angle++;
-            Zapper[i].Height = Zapper[i].size * sin((float)Zapper[i].Angle * PI / 180);
-            Zapper[i].Width = Zapper[i].size * cos((float)Zapper[i].Angle * PI / 180);
-            ZapperTexture.width = Zapper[i].size;
-            SBDL::showTexture(ZapperTexture, Zapper[i].PositionStart.x, Zapper[i].PositionStart.y, Zapper[i].Angle);
-            if (Zapper[i].PositionEnd.x < -500 * (i + 1) && ObstacleMode == coin)
-                DetermineZapper(i);
-            Zapper[i].PositionStart.x -= BackgrondVelocity;
-            Zapper[i].PositionEnd.x = Zapper[i].PositionStart.x + Zapper[i].Width;
-            for (int j = 0; j < 6; j++)
             {
-                Zapper[i].ArrayRect[j] = {Zapper[i].PositionStart.x + (1 - cos((float)Zapper[i].Angle * PI / 180)) * ZapperTexture.width / 2 + Zapper[i].Width * j / 6,
-                                          Zapper[i].PositionStart.y - sin((float)Zapper[i].Angle * PI / 180) * Zapper[i].size / 2 + ZapperTexture.height / 2 + Zapper[i].Height * j / 6,
-                                          40,
-                                          40};
-                SBDL::drawRectangle(Zapper[i].ArrayRect[j], 0, 0, 0, 200); //نمایش رکت ها
-                if (SBDL::hasIntersectionRect(Barry.Rect, Zapper[i].ArrayRect[j]) && Zapper[i].Show)
+                if (SBDL::keyPressed(SDL_SCANCODE_SPACE))
+                {
+                    RunCounter = 0;
+                    Barry.MoveDirection *= -1;
+                    Barry.vel += 0;
+                    if (Barry.MoveDirection == 1)
+                        Barry.ShapeNumber = 4;
+                    else
+                        Barry.ShapeNumber = 5;
+                }
+                Barry.vel += Barry.MoveDirection * 0.3;
+                Barry.Position.y += Barry.vel;
+                if (Barry.Position.y <= 10)
+                {
+                    if (RunCounter % 20 < 10)
+                        Barry.ShapeNumber = 2;
+                    else
+                        Barry.ShapeNumber = 3;
+                    RunCounter++;
+                    Barry.Position.y = 10;
+                    Barry.vel = 0;
+                }
+                if (Barry.Position.y >= 455)
+                {
+                    if (RunCounter % 20 < 10)
+                        Barry.ShapeNumber = 0;
+                    else
+                        Barry.ShapeNumber = 1;
+
+                    RunCounter++;
+                    Barry.Position.y = 455;
+                    Barry.vel = 0;
+                }
+                SBDL::showTexture(BarryGravityTexture[Barry.ShapeNumber], 50, Barry.Position.y);
+                Barry.Rect = {50, Barry.Position.y, BarryGravityTexture[Barry.ShapeNumber].width, BarryGravityTexture[Barry.ShapeNumber].height};
+            }
+
+            //END BARRY
+            //ZAPPERS
+
+            for (int i = 0; i < 3; i++)
+            {
+                if (Zapper[i].ZapperMode == vertical)
+                    Zapper[i].Angle = 90;
+                else if (Zapper[i].ZapperMode == Horizontal)
+                    Zapper[i].Angle = 0;
+                else
+                    Zapper[i].Angle++;
+                Zapper[i].Height = Zapper[i].size * sin((float)Zapper[i].Angle * PI / 180);
+                Zapper[i].Width = Zapper[i].size * cos((float)Zapper[i].Angle * PI / 180);
+                ZapperTexture.width = Zapper[i].size;
+                if (Zapper[i].PositionEnd.x < -500 * (i + 1) && ObstacleMode == coin)
+                    DetermineZapper(i);
+                Zapper[i].PositionStart.x -= BackgrondVelocity;
+                Zapper[i].PositionEnd.x = Zapper[i].PositionStart.x + Zapper[i].Width;
+                SBDL::showTexture(ZapperTexture, Zapper[i].PositionStart.x, Zapper[i].PositionStart.y, Zapper[i].Angle);
+                for (int j = 0; j < 6; j++)
+                {
+                    Zapper[i].ArrayRect[j] = {Zapper[i].PositionStart.x + (1 - cos((float)Zapper[i].Angle * PI / 180)) * ZapperTexture.width / 2 + Zapper[i].Width * j / 6,
+                                              Zapper[i].PositionStart.y - sin((float)Zapper[i].Angle * PI / 180) * Zapper[i].size / 2 + ZapperTexture.height / 2 + Zapper[i].Height * j / 6,
+                                              40,
+                                              40};
+                    SBDL::drawRectangle(Zapper[i].ArrayRect[j], 0, 0, 0, 200); //نمایش رکت ها
+                    if (SBDL::hasIntersectionRect(Barry.Rect, Zapper[i].ArrayRect[j]) && Zapper[i].Show)
+                    {
+                        Barry.Gravity = false;
+                        cout << "yes";
+                    }
+                }
+                Zapper[i].Rect = {Zapper[i].PositionStart.x,
+                                  Zapper[i].PositionStart.y - sin((float)90 * PI / 180) * Zapper[i].size / 2 + 15,
+                                  Zapper[i].size,
+                                  Zapper[i].size};
+            }
+            //END ZAPPERS
+            //COINS
+            counterCoin++;
+
+            for (int i = 0; i < linesCounter; i++)
+                for (int j = 0; j < eachLineLength; j++)
+                {
+                    if (grid[i][j] == 1)
+                    {
+                        coinsAr[i][j].Position.x = 30 * j + Coins.PositionStart.x - coinsAr[i][j].images[coinsAr[i][j].currentIndex].width / 2;
+                        coinsAr[i][j].Position.y = Coins.PositionStart.y + 30 * i;
+                        coinsAr[i][j].Rect = {coinsAr[i][j].Position.x, coinsAr[i][j].Position.y, coinsAr[i][j].images[coinsAr[i][j].currentIndex].width, coinsAr[i][j].images[coinsAr[i][j].currentIndex].height};
+                        if (SBDL::hasIntersectionRect(Barry.Rect, coinsAr[i][j].Rect) && coinsAr[i][j].show)
+                        {
+                            coinsAr[i][j].show = false;
+                        }
+
+                        if (coinsAr[i][j].show)
+                            SBDL::showTexture(coinsAr[i][j].images[coinsAr[i][j].currentIndex], coinsAr[i][j].Position.x, coinsAr[i][j].Position.y);
+                        if (counterCoin > 2)
+                            coinsAr[i][j].currentIndex = (coinsAr[i][j].currentIndex + 1) % coinsAr[i][j].size;
+                    }
+                }
+            Coins.PositionStart.x -= BackgrondVelocity;
+            Coins.PositionEnd.x = Coins.PositionStart.x + 30 * eachLineLength;
+            Coins.Rect = {Coins.PositionStart.x,
+                          Coins.PositionStart.y,
+                          30 * eachLineLength, 30 * linesCounter};
+            if (counterCoin > 2)
+                counterCoin = 0;
+            if (Coins.PositionEnd.x < 0 && ObstacleMode == coin)
+            {
+                if (Lazers[0].ShowRandDelay == 0)
+                {
+                    uniform_int_distribution<std::mt19937::result_type> Rand(0, 4);
+                    if (Rand(rng) == 1)
+                        ObstacleMode = lazer;
+                    else
+                        ObstacleMode = coin;
+                }
+                if (ObstacleMode == coin)
+                {
+                    CoinPattern();
+                    Lazers[0].ShowRandDelay = 0;
+                }
+            }
+            //END COINS
+            //SPEEDTOKEN
+            if (ObstacleMode == lazer)
+                if (SpeedToken.Position.x > 1024)
+                    SpeedToken.Position.x = -500;
+            if (SpeedToken.Position.x < 1024 && SpeedToken.Position.x >= -200 && SpeedToken.Show == true)
+            {
+                if (SpeedToken.showDalay % 5 == 0)
+                    SpeedToken.TextureNumber = (SpeedToken.TextureNumber + 1) % 4;
+                SBDL::showTexture(SpeedTokenTexture[SpeedToken.TextureNumber], SpeedToken.Position.x, SpeedToken.Position.y);
+                SpeedToken.Position.y = SpeedToken.PositionStart.y + SpeedToken.Velocity.y * sin(2 * SpeedToken.showDalay * PI / 180);
+                SpeedToken.showDalay++;
+            }
+            SpeedToken.Rect = {
+                SpeedToken.Position.x,
+                SpeedToken.Position.y,
+                SpeedTokenTexture[SpeedToken.TextureNumber].width,
+                SpeedTokenTexture[SpeedToken.TextureNumber].height};
+            SBDL::drawRectangle(SpeedToken.Rect, 0, 0, 0, 200);
+            SpeedToken.Position.x -= SpeedToken.Velocity.x;
+            if (SBDL::hasIntersectionRect(Barry.Rect, SpeedToken.Rect) && SpeedToken.Show && SpeedToken.FirstScore == 0)
+            {
+                SpeedToken.Show = false;
+                SpeedToken.FirstScore = Score;
+                SpeedToken.Position.x = -100;
+                BackgrondVelocity *= 4;
+            }
+
+            if (SpeedToken.FirstScore > 0)
+            {
+                DisableAllObstales();
+                if (Score - SpeedToken.FirstScore > 500)
+                {
+                    BackgrondVelocity = BackgrondVelocity / 4;
+                    SpeedToken.FirstScore = 0;
+                    ObstacleMode = coin;
+                    EnableAllObstales();
+                }
+            }
+            else if (SpeedToken.Position.x <= -500)
+                SpeedTokenPattern();
+            //END SPEEDTOKEN
+            //GRAVITY
+            if (ObstacleMode == lazer)
+                if (GravityToken.Position.x > 1024)
+                    GravityToken.Position.x = -500;
+            if (GravityToken.Position.x < 1024 && GravityToken.Position.x >= -200 && GravityToken.Show)
+                SBDL::showTexture(GravityTokenTexture, GravityToken.Position.x, GravityToken.Position.y);
+            GravityToken.Rect = {
+                GravityToken.Position.x,
+                GravityToken.Position.y,
+                GravityTokenTexture.width,
+                GravityTokenTexture.height};
+            if (SBDL::hasIntersectionRect(Barry.Rect, GravityToken.Rect) && GravityToken.Show)
+            {
+                Barry.Gravity = true;
+                GravityToken.Show = false;
+            }
+            GravityToken.Position.x -= BackgrondVelocity;
+            if (GravityToken.Position.x <= -500 && Barry.Gravity == false)
+                GravityTokenPattern();
+
+            //END GRAVITY
+            //MISSLE
+            int TedadMoshakRadshode = 0; //تعداد موشک های رد شده از صفحه
+            if (ObstacleMode == lazer)
+                for (int i = 0; i < 6; i++)
+                    if (Missle[i].Position.x > 3072 || Missle[i].Position.x < -200)
+                        Missle[i].Position.x = -500;
+            for (int i = 0; i < CountMislle; i++)
+            {
+                if (Missle[i].Position.x < 3072 && Missle[i].Position.x >= 2000 && Missle[i].Show)
+                {
+                    SBDL::showTexture(WarninigMissleTexture[0], 1024 - WarninigMissleTexture[1].width, Missle[i].Position.y);
+                    if (Barry.Position.y - Missle[i].Position.y < 0)
+                        Missle[i].Position.y -= Missle[i].Velocity.y;
+                    else if (Barry.Position.y - Missle[i].Position.y > 0)
+                        Missle[i].Position.y += Missle[i].Velocity.y;
+                }
+                else if (Missle[i].Position.x < 2000 && Missle[i].Position.x >= 1024 && Missle[i].Show)
+                    SBDL::showTexture(WarninigMissleTexture[1], 1024 - WarninigMissleTexture[1].width, Missle[i].Position.y);
+                else if (Missle[i].Position.x < 1024 && Missle[i].Position.x >= -200)
+                {
+                    if (Missle[i].showDalay % 3 == 0)
+                        Missle[i].TextureNumber = (Missle[i].TextureNumber + 1) % 6;
+                    Missle[i].Rect = {
+                        Missle[i].Position.x,
+                        Missle[i].Position.y,
+                        MissleTexture[Missle[i].TextureNumber].width,
+                        MissleTexture[Missle[i].TextureNumber].height};
+                    if (Missle[i].Show)
+                    {
+                        SBDL::drawRectangle(Missle[i].Rect, 0, 0, 0, 200);
+                        SBDL::showTexture(MissleTexture[Missle[i].TextureNumber], Missle[i].Position.x, Missle[i].Position.y);
+                        SBDL::showTexture(SmokeTexture[Missle[i].TextureNumber], Missle[i].Position.x + MissleTexture[Missle[i].TextureNumber].width, Missle[i].Position.y);
+                    }
+                    Missle[i].showDalay++;
+                }
+                Missle[i].Position.x -= Missle[i].Velocity.x;
+                if (Missle[i].Position.x <= -500)
+                    TedadMoshakRadshode++;
+                if (SBDL::hasIntersectionRect(Barry.Rect, Missle[i].Rect) && Missle[i].Show)
                 {
                     Barry.Gravity = false;
-                    cout << "yes";
                 }
             }
-            Zapper[i].Rect = {Zapper[i].PositionStart.x,
-                              Zapper[i].PositionStart.y - sin((float)90 * PI / 180) * Zapper[i].size / 2 + 15,
-                              Zapper[i].size,
-                              Zapper[i].size};
-        }
-        //END ZAPPERS
-        //COINS
-        counterCoin++;
+            if (TedadMoshakRadshode == CountMislle && ObstacleMode == coin)
+                MisslePattern();
+            //END MISSLE
 
-        for (int i = 0; i < linesCounter; i++)
-            for (int j = 0; j < eachLineLength; j++)
+            //LAZERS
+            if (ObstacleMode == lazer)
             {
-                if (grid[i][j] == 1)
-                {
-                    coinsAr[i][j].Position.x = 30 * j + Coins.PositionStart.x - coinsAr[i][j].images[coinsAr[i][j].currentIndex].width / 2;
-                    coinsAr[i][j].Position.y = Coins.PositionStart.y + 30 * i;
-                    coinsAr[i][j].Rect = {coinsAr[i][j].Position.x, coinsAr[i][j].Position.y, coinsAr[i][j].images[coinsAr[i][j].currentIndex].width, coinsAr[i][j].images[coinsAr[i][j].currentIndex].height};
-                    if (SBDL::hasIntersectionRect(Barry.Rect, coinsAr[i][j].Rect) && coinsAr[i][j].show)
-                    {
-                        coinsAr[i][j].show = false;
-                    }
-
-                    if (coinsAr[i][j].show)
-                        SBDL::showTexture(coinsAr[i][j].images[coinsAr[i][j].currentIndex], coinsAr[i][j].Position.x, coinsAr[i][j].Position.y);
-                    if (counterCoin > 2)
-                        coinsAr[i][j].currentIndex = (coinsAr[i][j].currentIndex + 1) % coinsAr[i][j].size;
-                }
-            }
-        Coins.PositionStart.x -= BackgrondVelocity;
-        Coins.PositionEnd.x = Coins.PositionStart.x + 30 * eachLineLength;
-        Coins.Rect = {Coins.PositionStart.x,
-                      Coins.PositionStart.y,
-                      30 * eachLineLength, 30 * linesCounter};
-        if (counterCoin > 2)
-            counterCoin = 0;
-        if (Coins.PositionEnd.x < 0 && ObstacleMode == coin)
-        {
-            if (Lazers[0].ShowRandDelay == 0)
-            {
-                uniform_int_distribution<std::mt19937::result_type> Rand(0, 4);
-                if (Rand(rng) == 1)
-                    ObstacleMode = lazer;
-                else
-                    ObstacleMode = coin;
-            }
-            if (ObstacleMode == coin)
-            {
-                CoinPattern();
-                Lazers[0].ShowRandDelay = 0;
-            }
-        }
-        //END COINS
-        //SPEEDTOKEN
-        if (ObstacleMode == lazer)
-            if (SpeedToken.Position.x > 1024)
-                SpeedToken.Position.x = -500;
-        if (SpeedToken.Position.x < 1024 && SpeedToken.Position.x >= -200 && SpeedToken.Show == true)
-        {
-            if (SpeedToken.showDalay % 5 == 0)
-                SpeedToken.TextureNumber = (SpeedToken.TextureNumber + 1) % 4;
-            SBDL::showTexture(SpeedTokenTexture[SpeedToken.TextureNumber], SpeedToken.Position.x, SpeedToken.Position.y);
-            SpeedToken.Position.y = SpeedToken.PositionStart.y + SpeedToken.Velocity.y * sin(2 * SpeedToken.showDalay * PI / 180);
-            SpeedToken.showDalay++;
-        }
-        SpeedToken.Rect = {
-            SpeedToken.Position.x,
-            SpeedToken.Position.y,
-            SpeedTokenTexture[SpeedToken.TextureNumber].width,
-            SpeedTokenTexture[SpeedToken.TextureNumber].height};
-        SBDL::drawRectangle(SpeedToken.Rect, 0, 0, 0, 200);
-        SpeedToken.Position.x -= SpeedToken.Velocity.x;
-        if (SBDL::hasIntersectionRect(Barry.Rect, SpeedToken.Rect) && SpeedToken.Show && SpeedToken.FirstScore == 0)
-        {
-            SpeedToken.Show = false;
-            SpeedToken.FirstScore = Score;
-            SpeedToken.Position.x = -100;
-            BackgrondVelocity *= 4;
-        }
-
-        if (SpeedToken.FirstScore > 0)
-        {
-            DisableAllObstales();
-            if (Score - SpeedToken.FirstScore > 500)
-            {
-                BackgrondVelocity = BackgrondVelocity / 4;
-                SpeedToken.FirstScore = 0;
-                ObstacleMode = coin;
-                EnableAllObstales();
-            }
-        }
-        else if (SpeedToken.Position.x <= -500)
-            SpeedTokenPattern();
-        //END SPEEDTOKEN
-        //GRAVITY
-        if (ObstacleMode == lazer)
-            if (GravityToken.Position.x > 1024)
-                GravityToken.Position.x = -500;
-        if (GravityToken.Position.x < 1024 && GravityToken.Position.x >= -200 && GravityToken.Show)
-            SBDL::showTexture(GravityTokenTexture, GravityToken.Position.x, GravityToken.Position.y);
-        GravityToken.Rect = {
-            GravityToken.Position.x,
-            GravityToken.Position.y,
-            GravityTokenTexture.width,
-            GravityTokenTexture.height};
-        if (SBDL::hasIntersectionRect(Barry.Rect, GravityToken.Rect) && GravityToken.Show)
-        {
-            Barry.Gravity = true;
-            GravityToken.Show = false;
-        }
-        GravityToken.Position.x -= BackgrondVelocity;
-        if (GravityToken.Position.x <= -500 && Barry.Gravity == false)
-            GravityTokenPattern();
-
-        //END GRAVITY
-        //MISSLE
-        int TedadMoshakRadshode = 0; //تعداد موشک های رد شده از صفحه
-        if (ObstacleMode == lazer)
-            for (int i = 0; i < 6; i++)
-                if (Missle[i].Position.x > 3072 || Missle[i].Position.x < -200)
-                    Missle[i].Position.x = -500;
-        for (int i = 0; i < CountMislle; i++)
-        {
-            if (Missle[i].Position.x < 3072 && Missle[i].Position.x >= 2000 && Missle[i].Show)
-            {
-                SBDL::showTexture(WarninigMissleTexture[0], 1024 - WarninigMissleTexture[1].width, Missle[i].Position.y);
-                if (Barry.Position.y - Missle[i].Position.y < 0)
-                    Missle[i].Position.y -= Missle[i].Velocity.y;
-                else if (Barry.Position.y - Missle[i].Position.y > 0)
-                    Missle[i].Position.y += Missle[i].Velocity.y;
-            }
-            else if (Missle[i].Position.x < 2000 && Missle[i].Position.x >= 1024 && Missle[i].Show)
-                SBDL::showTexture(WarninigMissleTexture[1], 1024 - WarninigMissleTexture[1].width, Missle[i].Position.y);
-            else if (Missle[i].Position.x < 1024 && Missle[i].Position.x >= -200)
-            {
-                if (Missle[i].showDalay % 3 == 0)
-                    Missle[i].TextureNumber = (Missle[i].TextureNumber + 1) % 6;
-                Missle[i].Rect = {
-                    Missle[i].Position.x,
-                    Missle[i].Position.y,
-                    MissleTexture[Missle[i].TextureNumber].width,
-                    MissleTexture[Missle[i].TextureNumber].height};
-                if (Missle[i].Show)
-                {
-                    SBDL::drawRectangle(Missle[i].Rect, 0, 0, 0, 200);
-                    SBDL::showTexture(MissleTexture[Missle[i].TextureNumber], Missle[i].Position.x, Missle[i].Position.y);
-                    SBDL::showTexture(SmokeTexture[Missle[i].TextureNumber], Missle[i].Position.x + MissleTexture[Missle[i].TextureNumber].width, Missle[i].Position.y);
-                }
-                Missle[i].showDalay++;
-            }
-            Missle[i].Position.x -= Missle[i].Velocity.x;
-            if (Missle[i].Position.x <= -500)
-                TedadMoshakRadshode++;
-            if (SBDL::hasIntersectionRect(Barry.Rect, Missle[i].Rect) && Missle[i].Show)
-            {
-                Barry.Gravity = false;
-            }
-        }
-        if (TedadMoshakRadshode == CountMislle && ObstacleMode == coin)
-            MisslePattern();
-        //END MISSLE
-
-        //LAZERS
-        if (ObstacleMode == lazer)
-        {
-            for (int i = 0; i < 3; i++)
-                if (Zapper[i].PositionStart.x > 1024)
-                    Zapper[i].PositionStart.x = -500;
-
-            if (Lazers[0].ShowRandDelay > 300 && Lazers[0].ShowRandDelay <= 400) // 5 ta gheir faal
-            {
-                for (int i = 0; i < 5; i++)
-                {
-                    Lazers[i].active = false;
-                    Lazers[i].Rect = {0,
-                                      10 + 100 * i,
-                                      LazarTexture[0].width,
-                                      LazarTexture[0].height};
-                    if (Lazers[i].Show == true)
-                        if (i < 3)
-                            SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
-                        else
-                            SBDL::showTexture(LazarTexture[3], 0, 10 + 100 * i);
-                }
-            }
-
-            if (Lazers[0].ShowRandDelay > 400 && Lazers[0].ShowRandDelay <= 550) // 3 ta 5 faal
-            {
-                if (Lazers[0].ShowRandDelay % 10 == 0)
-                    if (Lazers[0].ShowRand == 1)
-                        Lazers[0].ShowRand = 2;
-                    else
-                        Lazers[0].ShowRand = 1;
                 for (int i = 0; i < 3; i++)
-                    if (Lazers[i].Show == true)
-                        SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
-                for (int i = 3; i < 5; i++)
-                    if (Lazers[i].Show == true)
-                    {
-                        Lazers[i].active = true;
-                        SBDL::showTexture(LazarTexture[Lazers[0].ShowRand], 0, 10 + 100 * i);
-                    }
-            }
-            if (Lazers[0].Show || Lazers[1].Show || Lazers[2].Show)
-            {
-                if (Lazers[0].ShowRandDelay > 550 && Lazers[0].ShowRandDelay <= 650)
+                    if (Zapper[i].PositionStart.x > 1024)
+                        Zapper[i].PositionStart.x = -500;
+
+                if (Lazers[0].ShowRandDelay > 300 && Lazers[0].ShowRandDelay <= 400) // 5 ta gheir faal
                 {
                     for (int i = 0; i < 5; i++)
                     {
                         Lazers[i].active = false;
+                        Lazers[i].Rect = {0,
+                                          10 + 100 * i,
+                                          LazarTexture[0].width,
+                                          LazarTexture[0].height};
                         if (Lazers[i].Show == true)
-                            if (i >= 3)
+                            if (i < 3)
                                 SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
                             else
                                 SBDL::showTexture(LazarTexture[3], 0, 10 + 100 * i);
                     }
                 }
-                if (Lazers[0].ShowRandDelay > 650 && Lazers[0].ShowRandDelay <= 800)
+
+                if (Lazers[0].ShowRandDelay > 400 && Lazers[0].ShowRandDelay <= 550) // 3 ta 5 faal
                 {
                     if (Lazers[0].ShowRandDelay % 10 == 0)
                         if (Lazers[0].ShowRand == 1)
                             Lazers[0].ShowRand = 2;
                         else
                             Lazers[0].ShowRand = 1;
-                    for (int i = 3; i < 5; i++)
-                        if (Lazers[i].Show == true)
-                            SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
                     for (int i = 0; i < 3; i++)
                         if (Lazers[i].Show == true)
+                            SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
+                    for (int i = 3; i < 5; i++)
+                        if (Lazers[i].Show == true)
                         {
-                            SBDL::showTexture(LazarTexture[Lazers[0].ShowRand], 0, 10 + 100 * i);
                             Lazers[i].active = true;
+                            SBDL::showTexture(LazarTexture[Lazers[0].ShowRand], 0, 10 + 100 * i);
                         }
                 }
-            }
-            if (Lazers[0].ShowRandDelay > 800)
-            {
-                LazerPattern();
-                ObstacleMode = coin;
-            }
-            else
-            {
-                for (int i = 0; i < 5; i++)
+                if (Lazers[0].Show || Lazers[1].Show || Lazers[2].Show)
                 {
-                    if (SBDL::hasIntersectionRect(Barry.Rect, Lazers[i].Rect) && Lazers[i].active && Lazers[i].Show)
+                    if (Lazers[0].ShowRandDelay > 550 && Lazers[0].ShowRandDelay <= 650)
                     {
-                        Barry.Gravity = false;
+                        for (int i = 0; i < 5; i++)
+                        {
+                            Lazers[i].active = false;
+                            if (Lazers[i].Show == true)
+                                if (i >= 3)
+                                    SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
+                                else
+                                    SBDL::showTexture(LazarTexture[3], 0, 10 + 100 * i);
+                        }
+                    }
+                    if (Lazers[0].ShowRandDelay > 650 && Lazers[0].ShowRandDelay <= 800)
+                    {
+                        if (Lazers[0].ShowRandDelay % 10 == 0)
+                            if (Lazers[0].ShowRand == 1)
+                                Lazers[0].ShowRand = 2;
+                            else
+                                Lazers[0].ShowRand = 1;
+                        for (int i = 3; i < 5; i++)
+                            if (Lazers[i].Show == true)
+                                SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
+                        for (int i = 0; i < 3; i++)
+                            if (Lazers[i].Show == true)
+                            {
+                                SBDL::showTexture(LazarTexture[Lazers[0].ShowRand], 0, 10 + 100 * i);
+                                Lazers[i].active = true;
+                            }
                     }
                 }
-                Lazers[0].ShowRandDelay++;
+                if (Lazers[0].ShowRandDelay > 800)
+                {
+                    LazerPattern();
+                    ObstacleMode = coin;
+                }
+                else
+                {
+                    for (int i = 0; i < 5; i++)
+                    {
+                        if (SBDL::hasIntersectionRect(Barry.Rect, Lazers[i].Rect) && Lazers[i].active && Lazers[i].Show)
+                        {
+                            Barry.Gravity = false;
+                        }
+                    }
+                    Lazers[0].ShowRandDelay++;
+                }
             }
+            //END LAZERS
+            //PAUSE
+            SBDL::showTexture(PauseTexture, 990, 10);
+            SDL_Rect PauseButtonRect = {990, 10, 28, 42};
+            if (SBDL::mouseInRect(PauseButtonRect) && SBDL::Mouse.clicked() || SBDL::keyPressed(SDL_SCANCODE_P))
+                Pause = true;
         }
-
-        //END LAZERS
-
+        if (Pause)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                SBDL::showTexture(BackgroundTexture[r1][i], Background1[i].Position.x, 0);
+                SBDL::showTexture(BackgroundTexture[r2][i], Background2[i].Position.x, 0);
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                ZapperTexture.width = Zapper[i].size;
+                SBDL::showTexture(ZapperTexture, Zapper[i].PositionStart.x, Zapper[i].PositionStart.y, Zapper[i].Angle);
+            }
+            //for (int i = 0; i < 5; i++)
+            //if (Lazers[i].Show)
+            //SBDL::showTexture(LazarTexture[0], 0, 10 + 100 * i);
+            //اینجا باید درست شه
+            if (Barry.Gravity == false)
+                SBDL::showTexture(BarryTexture[Barry.ShapeNumber], 50, Barry.Position.y);
+            else
+                SBDL::showTexture(BarryGravityTexture[Barry.ShapeNumber], 50, Barry.Position.y);
+            counterCoin++;
+            for (int i = 0; i < linesCounter; i++)
+                for (int j = 0; j < eachLineLength; j++)
+                {
+                    if (grid[i][j] == 1)
+                    {
+                        coinsAr[i][j].Position.x = 30 * j + Coins.PositionStart.x - coinsAr[i][j].images[coinsAr[i][j].currentIndex].width / 2;
+                        coinsAr[i][j].Position.y = Coins.PositionStart.y + 30 * i;
+                        if (coinsAr[i][j].show)
+                            SBDL::showTexture(coinsAr[i][j].images[coinsAr[i][j].currentIndex], coinsAr[i][j].Position.x, coinsAr[i][j].Position.y);
+                        if (counterCoin > 2)
+                            coinsAr[i][j].currentIndex = (coinsAr[i][j].currentIndex + 1) % coinsAr[i][j].size;
+                    }
+                }
+            if (counterCoin > 2)
+                counterCoin = 0;
+            if (SpeedToken.Show == true)
+                SBDL::showTexture(SpeedTokenTexture[SpeedToken.TextureNumber], SpeedToken.Position.x, SpeedToken.Position.y);
+            if (GravityToken.Show == true)
+                SBDL::showTexture(GravityTokenTexture, GravityToken.Position.x, GravityToken.Position.y);
+            for (int i = 0; i < CountMislle; i++)
+            {
+                if (Missle[i].Position.x < 3072 && Missle[i].Position.x >= 2000 && Missle[i].Show)
+                    SBDL::showTexture(WarninigMissleTexture[0], 1024 - WarninigMissleTexture[1].width, Missle[i].Position.y);
+                else if (Missle[i].Position.x < 2000 && Missle[i].Position.x >= 1024 && Missle[i].Show)
+                    SBDL::showTexture(WarninigMissleTexture[1], 1024 - WarninigMissleTexture[1].width, Missle[i].Position.y);
+                else if (Missle[i].Position.x < 1024 && Missle[i].Position.x >= -200)
+                {
+                    if (Missle[i].Show)
+                    {
+                        SBDL::showTexture(MissleTexture[Missle[i].TextureNumber], Missle[i].Position.x, Missle[i].Position.y);
+                        SBDL::showTexture(SmokeTexture[Missle[i].TextureNumber], Missle[i].Position.x + MissleTexture[Missle[i].TextureNumber].width, Missle[i].Position.y);
+                    }
+                }
+            }
+            SBDL::showTexture(ResumeTexture, 512 - ResumeTexture.width / 2, 400);
+            SDL_Rect ResumeButtonRect = {512 - ResumeTexture.width / 2, 400, ResumeTexture.width, ResumeTexture.height};
+            if (SBDL::mouseInRect(ResumeButtonRect) && SBDL::Mouse.clicked() || SBDL::keyPressed(SDL_SCANCODE_R))
+                Pause = false;
+            SDL_Rect SoundButtonRect = {200, 400, SoundOnTexture.width, SoundOnTexture.height};
+            if (SBDL::mouseInRect(SoundButtonRect) && SBDL::Mouse.clicked() || SBDL::keyPressed(SDL_SCANCODE_M))
+            {
+                if (MusicOn)
+                {
+                    MusicOn = false;
+                    SBDL::stopMusic();
+                }
+                else
+                {
+                    MusicOn = true;
+                    playmusic();
+                }
+            }
+            if (MusicOn)
+                SBDL::showTexture(SoundOnTexture, 200, 400);
+            else
+                SBDL::showTexture(SoundOffTexture, 200, 400);
+        }
+        //END PAUSE
         SBDL::updateRenderScreen();
         int elapsedTime = SBDL::getTime() - startTime;
         if (elapsedTime < delay)
